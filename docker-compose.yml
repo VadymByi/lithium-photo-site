@@ -1,0 +1,20 @@
+version: '3.8' # Версия формата файла (стандарт для Docker Compose)
+
+services: # Здесь мы перечисляем все "здания", которые хотим построить
+  db: # Имя нашего сервиса (называем базу просто 'db')
+    image:
+      postgres:15 # Какой "стройматериал" использовать.
+      # Это образ из Docker Hub (официальный Postgres версии 15)
+    container_name: photo-db # Как будет называться контейнер в программе Docker Desktop
+    restart: always # Если база упадет, Docker сам её перезапустит
+    environment: # Настройки "внутри" базы данных
+      POSTGRES_USER: admin # Логин
+      POSTGRES_PASSWORD: password123 # Пароль
+      POSTGRES_DB: photodb # Имя базы данных
+    ports: # Проброс портов (связь твоего ПК и контейнера)
+      - '5433:5432' # [порт на твоем ПК]:[порт внутри контейнера]
+    volumes: # Где хранить данные физически
+      - postgres_data:/var/lib/postgresql/data
+
+volumes: # Описание хранилищ (томов)
+  postgres_data: # Имя тома, где база будет держать свои файлы
