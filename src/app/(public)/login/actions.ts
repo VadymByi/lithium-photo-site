@@ -1,6 +1,6 @@
 'use server';
 
-import { signIn } from '../../../lib/auth';
+import { signIn } from '@/lib/auth';
 import { AuthError } from 'next-auth';
 
 // Добавляем prevState первым аргументом
