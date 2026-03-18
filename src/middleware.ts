@@ -1,20 +1,11 @@
-import { auth } from './lib/auth';
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import NextAuth from 'next-auth';
+import { authConfig } from 'auth.config';
 
-export const runtime = 'nodejs';
-export async function middleware(req: NextRequest) {
-  const session = await auth();
-
-  const isLoggedIn = !!session;
-  const isAdminRoute = req.nextUrl.pathname.startsWith('/admin');
-
-  if (isAdminRoute && !isLoggedIn) {
-    return NextResponse.redirect(new URL('/login', req.nextUrl));
-  }
-  return NextResponse.next();
-}
+export default NextAuth(authConfig).auth;
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  // Добавляем jpg, jpeg, gif, svg и обязательно webp
+  matcher: [
+    '/((?!api|_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)',
+  ],
 };
