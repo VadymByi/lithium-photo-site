@@ -2,22 +2,54 @@
 
 import { signIn } from '@/lib/auth';
 import { AuthError } from 'next-auth';
+import { z } from 'zod';
 
-// Добавляем prevState первым аргументом
-export async function loginAction(prevState: any, formData: FormData) {
+const LoginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export interface ActionState {
+  errors?: {
+    email?: string[];
+    password?: string[];
+    _form?: string[];
+  };
+  message?: string | null;
+}
+export async function loginAction(
+  prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const rawFormData = Object.fromEntries(formData.entries());
+
+  const validatedFields = LoginSchema.safeParse(rawFormData);
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Please check your input.',
+    };
+  }
+
+  const { email, password } = validatedFields.data;
+
   try {
     await signIn('credentials', {
-      email: formData.get('email'),
-      password: formData.get('password'),
+      email,
+      password,
       redirectTo: '/admin',
     });
+    return { message: 'Success', errors: {} };
   } catch (error) {
     if (error instanceof AuthError) {
-      // Возвращаем объект ошибки, который попадет в переменную state на клиенте
-      return { error: 'Неверный логин или пароль' };
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return { message: 'Invalid email or password.', errors: {} };
+        default:
+          return { message: 'Something went wrong.', errors: {} };
+      }
     }
-    // ВАЖНО: Next.js использует проброс ошибок для редиректов.
-    // Если это ошибка редиректа — пробрасываем её дальше.
     throw error;
   }
 }
