@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import PhotoUploadForm from './PhotoUploadForm';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; //здесь нужно разобраться - нужно ли
 
 export default async function AdminPhotosPage() {
   const projects = await prisma.project.findMany({
