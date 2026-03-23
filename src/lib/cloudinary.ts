@@ -21,8 +21,8 @@ export const getProtectedImageUrl = (publicId: string) => {
       { width: 1600, crop: 'limit', quality: 'auto', fetch_format: 'auto' },
       {
         overlay: 'lithium_placeholder',
-        opacity: 20,
-        width: '0.5',
+        opacity: 50,
+        width: '1.9',
         flags: 'relative',
         gravity: 'center',
       },
