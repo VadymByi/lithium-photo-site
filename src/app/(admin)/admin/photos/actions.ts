@@ -51,3 +51,23 @@ export async function uploadPhotoAction(formData: FormData) {
     return { error: 'Failed to upload image' };
   }
 }
+
+export async function deletePhotoAction(photoId: string, publicId: string) {
+  console.log('Попытка удаления:', { photoId, publicId });
+  const session = await auth();
+  if (!session) return { error: 'Not authenticated' };
+
+  try {
+    await cloudinary.uploader.destroy(publicId);
+
+    await prisma.photo.delete({
+      where: { id: photoId },
+    });
+
+    revalidatePath('/admin/photos');
+    return { success: true };
+  } catch (error) {
+    console.error('Delete error: ', error);
+    return { error: 'Failed to delete photo' };
+  }
+}
