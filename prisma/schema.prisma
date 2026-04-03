@@ -35,6 +35,8 @@ model Photo {
   createdAt   DateTime @default(now())
 }
 
+
+
 // Models for  Auth.js
 
 model User {
