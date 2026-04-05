@@ -11,7 +11,7 @@ export default function ProtectedImage({
   className,
   ...props
 }: ProtectedImageProps) {
-  const protectedUl = getProtectedImageUrl(publicId);
+  const protectedUrl = getProtectedImageUrl(publicId);
   const preventDefault = (e: React.MouseEvent) => e.preventDefault();
 
   return (
@@ -21,7 +21,7 @@ export default function ProtectedImage({
     >
       <Image
         className="pointer-events-none block"
-        src={protectedUl}
+        src={protectedUrl}
         {...props}
         alt={alt}
         draggable={false}
