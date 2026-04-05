@@ -1,5 +1,5 @@
-import { ProtectedImage } from '@/components/shared/ProtectedImage';
-import { getProtectedImageUrl } from '@/lib/cloudinary';
+import ProtectedImage from '@/components/shared/ProtectedImage';
+import { getProtectedImageUrl } from '@/lib/cloudinary-client';
 
 export default function AdminPage() {
   const imageUrl = getProtectedImageUrl('Lithium_gallery/zpmwbk2s8yufgdsj9vja');
