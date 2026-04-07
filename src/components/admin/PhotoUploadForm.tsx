@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
-import { uploadPhotoAction } from './actions';
+import { uploadPhotoAction } from '@/app/(admin)/admin/photos/actions';
 
 interface Project {
   id: string;
