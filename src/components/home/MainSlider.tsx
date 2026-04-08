@@ -40,7 +40,15 @@ export default function MainSlider({ photos }: { photos: Photo[] }) {
         style={{ transform: `translateY(-${activeIndex * 100}vh)` }}
       >
         {photos.map((photo) => (
-          <div key={photo.id} className="relative h-screen w-full">
+          <div
+            key={`img-${photo.id}`}
+            className="relative w-full h-screen border-l border-white/5 overflow-hidden"
+          >
+            {/* <img
+              src={`https://res.cloudinary.com/dffhgmla8/image/upload/${photo.publicId}`}
+              alt="test"
+              className="w-full h-full object-cover"
+            /> */}
             <ProtectedImage
               publicId={photo.publicId}
               alt="Lithium"

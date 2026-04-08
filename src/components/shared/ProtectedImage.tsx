@@ -18,7 +18,7 @@ export default function ProtectedImage({
 
   return (
     <div
-      className={`relative inline-block overflow-hidden select-none ${className || ''}`}
+      className={`relative select-none overflow-hidden ${props.fill ? 'w-full h-full' : 'inline-block'} ${className || ''}`}
       onContextMenu={preventDefault}
     >
       <Image
