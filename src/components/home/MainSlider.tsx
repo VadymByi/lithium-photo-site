@@ -36,7 +36,7 @@ export default function MainSlider({ photos }: { photos: Photo[] }) {
       </div>
 
       <div
-        className="absolute right-0 w-[65%] h-full transition-transform duration-700 ease-in-out"
+        className="absolute right-0 w-[65%] h-full transition-transform duration-1000 ease-in-out"
         style={{ transform: `translateY(-${activeIndex * 100}vh)` }}
       >
         {photos.map((photo) => (
@@ -53,7 +53,9 @@ export default function MainSlider({ photos }: { photos: Photo[] }) {
               publicId={photo.publicId}
               alt="Lithium"
               fill
-              className="object-cover"
+              className="object-cover object-center" // Растянуть с обрезкой лишнего, центрировать
+              sizes="65vw" // Подсказка браузеру: картинка займет 65% ширины вьюпорта
+              priority
             />
           </div>
         ))}
