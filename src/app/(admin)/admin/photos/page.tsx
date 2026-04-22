@@ -52,7 +52,7 @@ export default async function AdminPhotosPage() {
 
         {/* Правая колонка: Список фото (8 из 12 колонок) */}
         <main className="lg:col-span-8">
-          <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[500px]">
+          <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-125">
             <h2 className="text-lg font-semibold mb-6 flex items-center justify-between">
               Галерея{' '}
               <span className="bg-gray-100 px-3 py-1 rounded-full text-sm font-normal text-gray-500">
