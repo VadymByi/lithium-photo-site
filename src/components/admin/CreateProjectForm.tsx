@@ -2,11 +2,25 @@
 
 import { createProjectAction } from '@/app/(admin)/admin/actions';
 import { useRef, useState } from 'react';
+import slugify from 'slugify';
 
 export default function CreateProjectForm() {
   const [isPending, setIspending] = useState(false);
   const [message, setMessage] = useState('');
+  const [slug, setSlug] = useState('');
   const formRef = useRef<HTMLFormElement>(null);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const title = e.target.value;
+    console.log('Ввод названия:', title);
+    const generatedSlug = slugify(title, {
+      lower: true,
+      strict: true,
+      locale: 'ru',
+    });
+    console.log('Сгенерирован слаг:', generatedSlug);
+    setSlug(generatedSlug);
+  };
 
   async function handleSubmit(formData: FormData) {
     setIspending(true);
@@ -19,6 +33,7 @@ export default function CreateProjectForm() {
     } else {
       setMessage('✅ Проект создан!');
       formRef.current?.reset();
+      setSlug('');
     }
     setIspending(false);
   }
@@ -37,8 +52,23 @@ export default function CreateProjectForm() {
             name="title"
             type="text"
             required
+            onChange={handleTitleChange}
             className="w-full p-2 border rounded bg-gray-50 text-black outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="например: Wedding in Spain"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1 text-gray-400 italic">
+            URL-адрес проекта (генерируется автоматически)
+          </label>
+          <input
+            name="slug"
+            type="text"
+            required
+            value={slug} // Привязываем к состоянию
+            onChange={(e) => setSlug(e.target.value)} // Позволяем редактировать вручную
+            className="w-full p-2 border rounded bg-gray-100 text-gray-500 text-sm outline-none"
+            placeholder="wedding-in-spain"
           />
         </div>
         <div>
