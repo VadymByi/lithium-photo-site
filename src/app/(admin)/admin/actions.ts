@@ -10,6 +10,7 @@ export async function logoutAction() {
 
 export async function createProjectAction(formData: FormData) {
   const title = formData.get('title') as string;
+  const slug = formData.get('slug') as string;
   const description = formData.get('description') as string;
 
   if (!title) return { error: 'Название проекта обязательно' };
@@ -18,6 +19,7 @@ export async function createProjectAction(formData: FormData) {
     await prisma.project.create({
       data: {
         title,
+        slug,
         description,
       },
     });
