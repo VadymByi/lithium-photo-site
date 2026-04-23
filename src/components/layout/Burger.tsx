@@ -17,7 +17,7 @@ interface BurgerProps {
 }
 
 const Burger: React.FC<BurgerProps> = ({
-  lineColor = 'bg-white',
+  lineColor = 'bg-black',
   className,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
