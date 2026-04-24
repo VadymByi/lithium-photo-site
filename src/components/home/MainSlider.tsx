@@ -1,79 +1,99 @@
 'use client';
 
 import { useState } from 'react';
-import { Photo } from '@prisma/client';
+import { MainSliderItem, Photo } from '@prisma/client';
 import ProtectedImage from './../shared/ProtectedImage';
 
-export default function MainSlider({ photos }: { photos: Photo[] }) {
+interface Props {
+  items: (MainSliderItem & { photo: Photo })[];
+}
+
+export default function MainSlider({ items }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const count = photos.length;
+  const count = items.length;
 
   const nextSlide = () => setActiveIndex((prev) => (prev + 1) % count);
   const prevSlide = () => setActiveIndex((prev) => (prev - 1 + count) % count);
 
+  const sideBarStyle = {
+    transform: `translateY(${activeIndex * 100}vh)`,
+    top: `-${(count - 1) * 100}vh`,
+  };
+
+  const mainSlideStyle = {
+    transform: `translateY(-${activeIndex * 100}vh)`,
+  };
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black">
+      {/* SIDEBAR (ТЕКСТ) - Едет ВНИЗ */}
       <div
-        className="absolute left-0 w-[35%] h-full transition-transform duration-700 ease-in-out z-10"
-        style={{
-          transform: `translateY(${activeIndex * 100}vh)`,
-          top: `-${(count - 1) * 100}vh`,
-        }}
+        className="absolute left-0 w-full md:w-[35%] h-full transition-transform duration-1000 ease-in-out z-20"
+        style={sideBarStyle}
       >
-        {[...photos].reverse().map((photo, i) => (
+        {[...items].reverse().map((item) => (
           <div
-            key={photo.id}
-            className="h-screen w-full flex flex-col items-center justify-center p-8 text-white bg-neutral-900"
+            key={`text-${item.id}`}
+            className="h-screen w-full flex flex-col items-center justify-center p-12 text-center text-white"
+            style={{ backgroundColor: item.backgroundColor }}
           >
-            <h1 className="text-3xl font-light tracking-widest uppercase">
-              Project
+            <h1 className="text-3xl md:text-5xl font-extralight tracking-[0.3em] uppercase leading-tight">
+              {item.title}
             </h1>
-            <p className="text-gray-400 mt-2 text-sm italic">
-              Lithium Collection
+            <div className="w-12 h-[1px] bg-white/30 my-6"></div>
+            <p className="text-white/60 text-xs md:text-sm uppercase tracking-[0.4em] italic">
+              {item.description}
             </p>
           </div>
         ))}
       </div>
 
+      {/* MAIN SLIDE (ФОТО) - Едет ВВЕРХ */}
       <div
-        className="absolute right-0 w-[65%] h-full transition-transform duration-1000 ease-in-out"
-        style={{ transform: `translateY(-${activeIndex * 100}vh)` }}
+        className="absolute right-0 w-full md:w-[65%] h-full transition-transform duration-1000 ease-in-out z-10"
+        style={mainSlideStyle}
       >
-        {photos.map((photo) => (
+        {items.map((item) => (
           <div
-            key={`img-${photo.id}`}
-            className="relative w-full h-screen border-l border-white/5 overflow-hidden"
+            key={`img-${item.id}`}
+            className="relative w-full h-screen overflow-hidden"
           >
-            {/* <img
-              src={`https://res.cloudinary.com/dffhgmla8/image/upload/${photo.publicId}`}
-              alt="test"
-              className="w-full h-full object-cover"
-            /> */}
             <ProtectedImage
-              publicId={photo.publicId}
-              alt="Lithium"
+              publicId={item.photo.publicId}
+              alt={item.title || 'Lithium'}
               fill
-              className="object-cover object-center" // Растянуть с обрезкой лишнего, центрировать
-              sizes="65vw" // Подсказка браузеру: картинка займет 65% ширины вьюпорта
+              className="object-cover object-center"
               priority
+              sizes="100vw, (min-width: 768px) 65vw"
             />
+            {/* Легкий градиент поверх фото для глубины */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
           </div>
         ))}
       </div>
 
-      <div className="absolute left-[35%] top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col">
+      {/* Кнопки управления */}
+      <div className="absolute left-1/2 md:left-[35%] top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col gap-0 shadow-2xl">
         <button
           onClick={prevSlide}
-          className="p-4 bg-white/10 hover:bg-white text-white hover:text-black transition-all"
+          className="p-5 bg-white/10 hover:bg-white backdrop-blur-md text-white hover:text-black transition-all duration-300 border border-white/10"
         >
-          ↑
+          <span className="block transform rotate-180 text-xl font-light">
+            ↓
+          </span>
         </button>
         <button
           onClick={nextSlide}
-          className="p-4 bg-white/10 hover:bg-white text-white hover:text-black transition-all"
+          className="p-5 bg-white/10 hover:bg-white backdrop-blur-md text-white hover:text-black transition-all duration-300 border border-white/10 border-t-0"
         >
-          ↓
+          <span className="block text-xl font-light">↓</span>
         </button>
+      </div>
+
+      {/* Индикатор текущего слайда */}
+      <div className="absolute bottom-10 left-10 z-50 text-white/30 text-[10px] tracking-[0.5em] uppercase hidden md:block">
+        {String(activeIndex + 1).padStart(2, '0')} /{' '}
+        {String(count).padStart(2, '0')}
       </div>
     </div>
   );
