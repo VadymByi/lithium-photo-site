@@ -100,3 +100,11 @@ model MainSliderItem {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model SiteConfig {
+  id            Int     @id @default(1)
+  showAbout     Boolean @default(true)
+  showPortfolio Boolean @default(true)
+  showProjects  Boolean @default(true)
+  showContacts  Boolean @default(true)
+}
