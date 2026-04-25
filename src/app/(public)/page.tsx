@@ -1,4 +1,3 @@
-import { prisma } from '@/lib/prisma';
 import { getSliderItems } from '../(admin)/admin/slider/actions';
 import MainSlider from './../../components/home/MainSlider';
 
