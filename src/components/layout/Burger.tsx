@@ -17,7 +17,7 @@ interface BurgerProps {
 }
 
 const Burger: React.FC<BurgerProps> = ({
-  lineColor = 'bg-black',
+  lineColor = 'bg-white',
   className,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,45 +28,47 @@ const Burger: React.FC<BurgerProps> = ({
       {/* Burger Icon */}
       <div
         id="burger"
-        className={`fixed top-5 right-5 z-[1001] flex flex-col justify-center items-center gap-1 cursor-pointer w-[30px] h-[30px] transition-transform ${className}`}
+        className={`fixed top-6 left-6 md:top-10 md:left-10 z-[1001] flex flex-col justify-center items-center gap-1.5 cursor-pointer w-[30px] h-[30px] transition-transform active:scale-90 ${className ?? ''}`}
         onClick={() => setMenuOpen(!menuOpen)}
       >
         <span
-          className={`block h-[3px] w-full rounded transition-transform duration-300 ease-in-out ${
-            menuOpen ? 'rotate-45 translate-y-[8px] bg-white' : `${lineColor}`
+          className={`block h-[2px] w-full rounded transition-all duration-300 ease-in-out ${
+            menuOpen ? 'rotate-45 translate-y-[8.5px] bg-white' : lineColor
           }`}
-        ></span>
+        />
         <span
-          className={`block h-[3px] w-full rounded transition-all duration-300 ease-in-out ${
-            menuOpen ? 'opacity-0' : `${lineColor}`
+          className={`block h-[2px] w-full rounded transition-all duration-300 ease-in-out ${
+            menuOpen ? 'opacity-0' : lineColor
           }`}
-        ></span>
+        />
         <span
-          className={`block h-[3px] w-full rounded transition-transform duration-300 ease-in-out ${
-            menuOpen ? '-rotate-45 -translate-y-[8px] bg-white' : `${lineColor}`
+          className={`block h-[2px] w-full rounded transition-all duration-300 ease-in-out ${
+            menuOpen ? '-rotate-45 -translate-y-[8.5px] bg-white' : lineColor
           }`}
-        ></span>
+        />
       </div>
 
       {/* Side Menu */}
       <nav
-        className={`fixed top-0 right-0 h-screen w-[250px] bg-[#111] shadow-lg transition-transform duration-300 z-[1000] transform ${
-          menuOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed top-0 left-0 h-screen w-[280px] bg-black/90 backdrop-blur-xl border-r border-white/10 shadow-2xl transition-transform duration-500 z-[1000] ease-out ${
+          menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <ul className="flex flex-col gap-6 p-8 mt-16">
+        <ul className="flex flex-col gap-8 p-10 mt-24">
           {menuItems.map((item) => {
             const isActive = pathname === item.to;
+
             return (
               <li key={item.to}>
                 <Link
                   href={item.to}
                   onClick={() => setMenuOpen(false)}
-                  className={`text-lg transition-all ${
-                    isActive
-                      ? 'text-sky-400 font-semibold border-b-2 border-sky-400'
-                      : 'text-white hover:text-sky-300'
-                  }`}
+                  className={
+                    'text-2xl font-light tracking-widest uppercase transition-all duration-300 ' +
+                    (isActive
+                      ? 'text-white pl-4 border-l-2 border-white'
+                      : 'text-zinc-500 hover:text-white hover:pl-2')
+                  }
                 >
                   {item.label}
                 </Link>
@@ -77,12 +79,14 @@ const Burger: React.FC<BurgerProps> = ({
       </nav>
 
       {/* Overlay */}
-      {menuOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-[999]"
-          onClick={() => setMenuOpen(false)}
-        ></div>
-      )}
+      <div
+        className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-500 z-[999] ${
+          menuOpen
+            ? 'opacity-100 pointer-events-auto'
+            : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setMenuOpen(false)}
+      />
     </>
   );
 };

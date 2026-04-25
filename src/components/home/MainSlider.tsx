@@ -64,9 +64,9 @@ export default function MainSlider({ items }: Props) {
               fill
               className="object-cover object-center"
               priority
-              sizes="100vw, (min-width: 768px) 65vw"
+              sizes="(max-width: 768px) 100vw, 65vw"
             />
-            {/* Легкий градиент поверх фото для глубины */}
+
             <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
           </div>
         ))}
