@@ -6,21 +6,19 @@ import Link from 'next/link';
 import { SiteConfig } from '@prisma/client';
 
 interface BurgerProps {
-  lineColor?: string;
-  className?: string;
   config: SiteConfig | null;
 }
 
-const Burger: React.FC<BurgerProps> = ({
-  lineColor = 'bg-black',
-  className,
-  config,
-}) => {
+const Burger: React.FC<BurgerProps> = ({ config }) => {
   // STATE MANAGEMENT
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
 
-  // MENU FILTERING BASED ON CONFIG
+  // DYNAMIC LINE COLOR BASED ON CURRENT PAGE
+  const isLightPage = pathname === '/about' || pathname === '/contacts';
+  const currentLineColor = isLightPage ? 'bg-black' : 'bg-white';
+
+  // FILTERED NAVIGATION ITEMS BASED ON CONFIG
   const filteredMenuItems = [
     { to: '/', label: 'Main', show: true },
     { to: '/about', label: 'About', show: config?.showAbout },
@@ -33,43 +31,46 @@ const Burger: React.FC<BurgerProps> = ({
     <>
       {/* BURGER BUTTON */}
       <div
-        id="burger"
-        className={`fixed top-6 left-6 md:top-10 md:left-10 z-1001 flex flex-col justify-center items-center gap-1.5 cursor-pointer w-7.5 h-7.5 transition-transform active:scale-90 ${className || ''}`}
+        className="fixed top-6 left-6 md:top-10 md:left-10 z-101 flex flex-col justify-center items-center gap-1.5 cursor-pointer w-8 h-8 transition-transform active:scale-90"
         onClick={() => setMenuOpen(!menuOpen)}
       >
         <span
-          className={`block h-0.5 w-full rounded transition-all duration-300 ease-in-out ${
-            menuOpen ? 'rotate-45 translate-y-[8.5px] bg-white' : lineColor
+          className={`block h-px w-full transition-all duration-300 ease-in-out ${
+            menuOpen
+              ? 'rotate-45 translate-y-[7.5px] bg-white'
+              : currentLineColor
           }`}
         />
         <span
-          className={`block h-0.5 w-full rounded transition-all duration-300 ease-in-out ${
-            menuOpen ? 'opacity-0' : lineColor
+          className={`block h-px w-full transition-all duration-300 ease-in-out ${
+            menuOpen ? 'opacity-0' : currentLineColor
           }`}
         />
         <span
-          className={`block h-0.5 w-full rounded transition-all duration-300 ease-in-out ${
-            menuOpen ? '-rotate-45 -translate-y-[8.5px] bg-white' : lineColor
+          className={`block h-px w-full transition-all duration-300 ease-in-out ${
+            menuOpen
+              ? '-rotate-45 -translate-y-[7.5px] bg-white'
+              : currentLineColor
           }`}
         />
       </div>
 
-      {/* SIDE MENU */}
+      {/* SLIDE-IN MENU */}
       <nav
-        className={`fixed top-0 left-0 h-full w-64 bg-black text-white transform transition-transform duration-500 z-1000 ${
+        className={`fixed top-0 left-0 h-full w-full md:w-80 bg-black text-white transform transition-transform duration-500 ease-[cubic-bezier(0.77,0,0.175,1)] z-100 flex flex-col p-10 pt-32 ${
           menuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <ul className="flex flex-col gap-8 p-10 mt-24">
+        {/* NAVIGATION LINKS */}
+        <ul className="flex flex-col gap-6">
           {filteredMenuItems.map((item) => {
             const isActive = pathname === item.to;
-
             return (
               <li key={item.to}>
                 <Link
                   href={item.to}
-                  className={`text-lg transition-colors ${
-                    isActive ? 'text-red-500' : 'text-white'
+                  className={`text-3xl font-light tracking-tighter transition-all hover:pl-2 ${
+                    isActive ? 'italic' : 'opacity-60 hover:opacity-100'
                   }`}
                   onClick={() => setMenuOpen(false)}
                 >
@@ -79,11 +80,26 @@ const Burger: React.FC<BurgerProps> = ({
             );
           })}
         </ul>
+
+        {/* SOCIAL LINKS */}
+        <div className="mt-auto border-t border-zinc-800 pt-10">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 mb-6 font-bold">
+            Socials
+          </p>
+          <a
+            href="https://www.instagram.com/lithium_cloud/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xl font-light hover:italic transition-all inline-block"
+          >
+            Instagram
+          </a>
+        </div>
       </nav>
 
-      {/* OVERLAY */}
+      {/* OVERLAY BACKDROP */}
       <div
-        className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-500 z-999 ${
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-500 z-99 ${
           menuOpen
             ? 'opacity-100 pointer-events-auto'
             : 'opacity-0 pointer-events-none'
