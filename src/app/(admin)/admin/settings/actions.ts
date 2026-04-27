@@ -35,6 +35,9 @@ export async function updateSiteConfig(data: {
   showPortfolio?: boolean;
   showProjects?: boolean;
   showContacts?: boolean;
+  aboutTitle?: string;
+  aboutText?: string;
+  aboutImageUrl?: string | null;
 }) {
   try {
     const updated = await prisma.siteConfig.upsert({
@@ -46,10 +49,14 @@ export async function updateSiteConfig(data: {
         showPortfolio: data.showPortfolio ?? true,
         showProjects: data.showProjects ?? true,
         showContacts: data.showContacts ?? true,
+        aboutTitle: data.aboutTitle ?? 'About Me',
+        aboutText: data.aboutText ?? '',
+        aboutImageUrl: data.aboutImageUrl ?? null,
       },
     });
 
     revalidatePath('/', 'layout');
+    revalidatePath('/about');
 
     return { success: true };
   } catch (error) {

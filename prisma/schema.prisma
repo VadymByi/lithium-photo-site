@@ -107,4 +107,7 @@ model SiteConfig {
   showPortfolio Boolean @default(true)
   showProjects  Boolean @default(true)
   showContacts  Boolean @default(true)
+  aboutTitle     String  @default("About")
+  aboutText      String  @default("Place your biography here...")
+  aboutImageUrl  String?
 }
