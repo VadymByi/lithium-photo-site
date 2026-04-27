@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-// Получение всех фото для слайдера портфолио
+// FETCH PORTFOLIO PHOTOS FOR SLIDER
 export async function getPortfolioPhotos() {
   try {
     const items = await prisma.portfolioItem.findMany({
@@ -14,6 +14,7 @@ export async function getPortfolioPhotos() {
         photo: true,
       },
     });
+
     return items.map((item) => item.photo);
   } catch (error) {
     console.error('Failed to fetch portfolio:', error);
@@ -21,7 +22,7 @@ export async function getPortfolioPhotos() {
   }
 }
 
-// Добавление фото в портфолио (для админки)
+// ADD PHOTO TO PORTFOLIO (ADMIN ONLY)
 export async function addToPortfolio(photoId: string) {
   const lastItem = await prisma.portfolioItem.findFirst({
     orderBy: { order: 'desc' },

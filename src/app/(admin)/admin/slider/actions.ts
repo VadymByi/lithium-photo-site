@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+// FETCH ALL SLIDER ITEMS
 export async function getSliderItems() {
   return await prisma.mainSliderItem.findMany({
     include: {
@@ -14,6 +15,7 @@ export async function getSliderItems() {
   });
 }
 
+// CREATE NEW SLIDER ITEM
 export async function createSliderItem(formData: FormData) {
   const title = formData.get('title') as string;
   const description = formData.get('description') as string;
@@ -31,24 +33,30 @@ export async function createSliderItem(formData: FormData) {
         order,
       },
     });
+
     revalidatePath('/');
     revalidatePath('/admin/slider');
+
     return { success: true };
   } catch (error) {
-    console.error('Slider creation error: ', error);
-    return { error: 'Не удалось создать слайд' };
+    console.error('Slider creation error:', error);
+    return { error: 'Failed to create slider item' };
   }
 }
 
+// DELETE SLIDER ITEM
 export async function deleteSliderItem(id: string) {
   try {
     await prisma.mainSliderItem.delete({
       where: { id },
     });
+
     revalidatePath('/');
     revalidatePath('/admin/slider');
+
     return { success: true };
   } catch (error) {
-    return { error: 'Ошибка при удалении' };
+    console.error('Slider deletion error:', error);
+    return { error: 'Failed to delete slider item' };
   }
 }
