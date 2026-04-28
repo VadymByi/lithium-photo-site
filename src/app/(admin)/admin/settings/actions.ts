@@ -2,6 +2,8 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/lib/auth';
+import { siteConfigSchema } from '@/lib/schemas';
 
 // FETCH OR INITIALIZE SITE CONFIG
 export async function getSiteConfig() {
@@ -10,6 +12,7 @@ export async function getSiteConfig() {
       where: { id: 1 },
     });
 
+    // CREATE DEFAULT CONFIG IF NOT EXISTS
     if (!config) {
       config = await prisma.siteConfig.create({
         data: {
@@ -29,38 +32,40 @@ export async function getSiteConfig() {
   }
 }
 
-// UPDATE SITE CONFIG WITH UPSERT + CACHE INVALIDATION
-export async function updateSiteConfig(data: {
-  showAbout?: boolean;
-  showPortfolio?: boolean;
-  showProjects?: boolean;
-  showContacts?: boolean;
-  aboutTitle?: string;
-  aboutText?: string;
-  aboutImageUrl?: string | null;
-}) {
+// UPDATE SITE CONFIG
+export async function updateSiteConfig(rawData: unknown) {
+  // CHECK AUTHORIZATION
+  const session = await auth();
+  if (!session) return { success: false, error: 'Unauthorized' };
+
+  // VALIDATE INPUT DATA
+  const result = siteConfigSchema.safeParse(rawData);
+
+  if (!result.success) {
+    return {
+      success: false,
+      errors: result.error.flatten().fieldErrors,
+    };
+  }
+
   try {
-    const updated = await prisma.siteConfig.upsert({
+    // UPSERT CONFIG
+    await prisma.siteConfig.upsert({
       where: { id: 1 },
-      update: data,
+      update: result.data,
       create: {
         id: 1,
-        showAbout: data.showAbout ?? true,
-        showPortfolio: data.showPortfolio ?? true,
-        showProjects: data.showProjects ?? true,
-        showContacts: data.showContacts ?? true,
-        aboutTitle: data.aboutTitle ?? 'About Me',
-        aboutText: data.aboutText ?? '',
-        aboutImageUrl: data.aboutImageUrl ?? null,
+        ...result.data,
       },
     });
 
+    // REVALIDATE SITE CACHE
     revalidatePath('/', 'layout');
     revalidatePath('/about');
 
     return { success: true };
   } catch (error) {
     console.error('Error updating site config:', error);
-    return { success: false };
+    return { success: false, error: 'Failed to save settings' };
   }
 }

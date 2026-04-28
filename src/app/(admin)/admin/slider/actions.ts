@@ -1,7 +1,10 @@
 'use server';
 
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { mainSliderItemSchema } from '@/lib/schemas';
+import { z } from 'zod';
 
 // FETCH ALL SLIDER ITEMS
 export async function getSliderItems() {
@@ -17,21 +20,31 @@ export async function getSliderItems() {
 
 // CREATE NEW SLIDER ITEM
 export async function createSliderItem(formData: FormData) {
-  const title = formData.get('title') as string;
-  const description = formData.get('description') as string;
-  const backgroundColor = formData.get('backgroundColor') as string;
-  const photoId = formData.get('photoId') as string;
-  const order = parseInt(formData.get('order') as string) || 0;
+  const session = await auth();
+  if (!session) return { error: 'Access denied' };
+
+  // EXTRACT RAW FORM DATA
+  const rawData = {
+    title: formData.get('title'),
+    description: formData.get('description'),
+    backgroundColor: formData.get('backgroundColor'),
+    photoId: formData.get('photoId'),
+    order: formData.get('order'),
+  };
+
+  // VALIDATE WITH ZOD
+  const result = mainSliderItemSchema.safeParse(rawData);
+
+  if (!result.success) {
+    return {
+      error: 'Invalid data',
+      details: result.error.flatten().fieldErrors,
+    };
+  }
 
   try {
     await prisma.mainSliderItem.create({
-      data: {
-        title,
-        description,
-        backgroundColor,
-        photoId,
-        order,
-      },
+      data: result.data,
     });
 
     revalidatePath('/');
@@ -46,9 +59,16 @@ export async function createSliderItem(formData: FormData) {
 
 // DELETE SLIDER ITEM
 export async function deleteSliderItem(id: string) {
+  const session = await auth();
+  if (!session) return { error: 'Access denied' };
+
+  // VALIDATE ID
+  const idCheck = z.string().cuid().safeParse(id);
+  if (!idCheck.success) return { error: 'Invalid ID format' };
+
   try {
     await prisma.mainSliderItem.delete({
-      where: { id },
+      where: { id: idCheck.data },
     });
 
     revalidatePath('/');

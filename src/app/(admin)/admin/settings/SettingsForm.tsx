@@ -4,23 +4,36 @@ import { SiteConfig } from '@prisma/client';
 import { useState } from 'react';
 import { updateSiteConfig } from './actions';
 
+// COMPONENT PROPS
 interface Props {
   initialConfig: SiteConfig;
 }
 
+// SETTINGS FORM COMPONENT
 export default function SettingsForm({ initialConfig }: Props) {
-  // STATE MANAGEMENT
   const [config, setConfig] = useState(initialConfig);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [errors, setErrors] = useState<{
+    aboutTitle?: string[];
+    aboutText?: string[];
+  }>({});
 
-  // SAVE HANDLER
+  // HANDLE SAVE ACTION
   const handleSave = async (data: Partial<SiteConfig>) => {
     setIsUpdating(true);
+    setErrors({});
 
     const result = await updateSiteConfig(data);
 
-    if (!result || !result.success) {
-      alert('Failed to save changes');
+    if (!result?.success) {
+      if (result?.errors) {
+        setErrors(result.errors);
+      } else {
+        alert(result?.error || 'Failed to save changes');
+      }
+
+      // ROLLBACK LOCAL STATE ON ERROR
+      setConfig(config);
     }
 
     setIsUpdating(false);
@@ -29,10 +42,8 @@ export default function SettingsForm({ initialConfig }: Props) {
   // TOGGLE BOOLEAN SETTINGS
   const toggleSetting = async (field: keyof SiteConfig) => {
     if (isUpdating) return;
-
     const newValue = !config[field];
     setConfig((prev) => ({ ...prev, [field]: newValue }));
-
     await handleSave({ [field]: newValue });
   };
 
@@ -63,7 +74,6 @@ export default function SettingsForm({ initialConfig }: Props) {
         <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 mb-6">
           Навигация
         </h3>
-
         <div className="space-y-4">
           {settings.map((item) => (
             <div
@@ -76,8 +86,6 @@ export default function SettingsForm({ initialConfig }: Props) {
               >
                 {item.label}
               </label>
-
-              {/* TOGGLE SWITCH */}
               <div className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -100,45 +108,55 @@ export default function SettingsForm({ initialConfig }: Props) {
           Контент страницы About
         </h3>
 
-        {/* TITLE INPUT */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-zinc-500 uppercase">
             Заголовок
           </label>
           <input
             type="text"
-            className="w-full p-3 border border-zinc-200 rounded-md focus:border-black outline-none transition-colors text-xl font-light"
+            className={`w-full p-3 border rounded-md outline-none transition-colors text-xl font-light ${
+              errors.aboutTitle
+                ? 'border-red-500 bg-red-50'
+                : 'border-zinc-200 focus:border-black'
+            }`}
             value={config.aboutTitle || ''}
             onChange={(e) =>
               setConfig({ ...config, aboutTitle: e.target.value })
             }
             onBlur={() => handleSave({ aboutTitle: config.aboutTitle || '' })}
-            placeholder="Напр: About the Author"
           />
+          {errors.aboutTitle && (
+            <p className="text-red-500 text-xs">{errors.aboutTitle[0]}</p>
+          )}
         </div>
 
-        {/* TEXTAREA INPUT */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-zinc-500 uppercase">
             Текст биографии
           </label>
           <textarea
             rows={10}
-            className="w-full p-3 border border-zinc-200 rounded-md focus:border-black outline-none transition-colors leading-relaxed"
+            className={`w-full p-3 border rounded-md outline-none transition-colors leading-relaxed ${
+              errors.aboutText
+                ? 'border-red-500 bg-red-50'
+                : 'border-zinc-200 focus:border-black'
+            }`}
             value={config.aboutText || ''}
             onChange={(e) =>
               setConfig({ ...config, aboutText: e.target.value })
             }
             onBlur={() => handleSave({ aboutText: config.aboutText || '' })}
-            placeholder="Расскажите о себе..."
           />
+          {errors.aboutText && (
+            <p className="text-red-500 text-xs">{errors.aboutText[0]}</p>
+          )}
         </div>
       </section>
 
-      {/* GLOBAL SAVING INDICATOR */}
+      {/* SAVE STATUS INDICATOR */}
       <div className="fixed bottom-8 right-8">
         {isUpdating && (
-          <div className="bg-black text-white px-4 py-2 rounded-full text-xs animate-fade-in shadow-xl">
+          <div className="bg-black text-white px-4 py-2 rounded-full text-xs animate-pulse shadow-xl">
             Сохранение...
           </div>
         )}
