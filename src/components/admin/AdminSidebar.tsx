@@ -10,6 +10,7 @@ export default function AdminSidebar() {
 
   return (
     <aside className="w-64 bg-slate-900 text-white p-6 flex flex-col shrink-0">
+      {/* SIDEBAR HEADER */}
       <div className="mb-8">
         <h2 className="text-xl font-bold text-blue-400 tracking-tight">
           Lithium Admin
@@ -19,9 +20,9 @@ export default function AdminSidebar() {
         </p>
       </div>
 
+      {/* NAVIGATION MENU */}
       <nav className="flex-1 space-y-1">
         {ADMIN_MENU_ITEMS.map((item) => {
-          // Проверяем активность: точно совпадение или вложенный путь (например, /admin/projects/1)
           const isActive =
             pathname === item.path ||
             (item.path !== '/admin' && pathname.startsWith(item.path));
@@ -42,6 +43,7 @@ export default function AdminSidebar() {
         })}
       </nav>
 
+      {/* LOGOUT SECTION */}
       <form
         action={logoutAction}
         className="mt-auto pt-6 border-t border-slate-800"
