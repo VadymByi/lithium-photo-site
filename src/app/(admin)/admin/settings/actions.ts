@@ -12,7 +12,6 @@ export async function getSiteConfig() {
       where: { id: 1 },
     });
 
-    // CREATE DEFAULT CONFIG IF NOT EXISTS
     if (!config) {
       config = await prisma.siteConfig.create({
         data: {
@@ -32,40 +31,41 @@ export async function getSiteConfig() {
   }
 }
 
-// UPDATE SITE CONFIG
+// UPDATE SITE CONFIG WITH VALIDATION AND AUTHORIZATION
 export async function updateSiteConfig(rawData: unknown) {
-  // CHECK AUTHORIZATION
+  // AUTHORIZATION CHECK
   const session = await auth();
   if (!session) return { success: false, error: 'Unauthorized' };
 
-  // VALIDATE INPUT DATA
-  const result = siteConfigSchema.safeParse(rawData);
+  // VALIDATE INPUT DATA (PARTIAL UPDATE)
+  const result = siteConfigSchema.partial().safeParse(rawData);
 
   if (!result.success) {
-    return {
-      success: false,
-      errors: result.error.flatten().fieldErrors,
-    };
+    return { success: false, errors: result.error.flatten().fieldErrors };
   }
 
   try {
-    // UPSERT CONFIG
+    // UPSERT CONFIG (CREATE OR UPDATE)
     await prisma.siteConfig.upsert({
       where: { id: 1 },
       update: result.data,
       create: {
         id: 1,
+        showAbout: true,
+        showPortfolio: true,
+        showProjects: true,
+        showContacts: true,
         ...result.data,
       },
     });
 
-    // REVALIDATE SITE CACHE
+    // REVALIDATE CACHE
+    revalidatePath('/admin/settings');
     revalidatePath('/', 'layout');
-    revalidatePath('/about');
 
     return { success: true };
   } catch (error) {
-    console.error('Error updating site config:', error);
+    console.error('Database Error:', error);
     return { success: false, error: 'Failed to save settings' };
   }
 }
