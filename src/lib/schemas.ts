@@ -33,10 +33,10 @@ export const portfolioItemSchema = z.object({
 
 // SITE CONFIG SCHEMA
 export const siteConfigSchema = z.object({
-  showAbout: z.boolean().default(true),
-  showPortfolio: z.boolean().default(true),
-  showProjects: z.boolean().default(true),
-  showContacts: z.boolean().default(true),
+  showAbout: z.boolean(),
+  showPortfolio: z.boolean(),
+  showProjects: z.boolean(),
+  showContacts: z.boolean(),
   aboutTitle: z.string().min(1, 'Заголовок обязателен').max(100).optional(),
   aboutText: z.string().max(3000, 'Текст слишком длинный').optional(),
   aboutImageUrl: z
