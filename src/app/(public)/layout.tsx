@@ -2,7 +2,6 @@ import Burger from '@/components/layout/Burger';
 import SocialLinks from '@/components/layout/SocialLinks';
 import { getSiteConfig } from '../(admin)/admin/settings/actions';
 
-// 💥 КРИТИЧНО: отключаем кеш
 export const dynamic = 'force-dynamic';
 
 export default async function PublicLayout({

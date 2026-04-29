@@ -1,6 +1,6 @@
 'use client';
 
-import { createProjectAction } from '@/app/(admin)/admin/actions';
+import { createProjectAction } from '@/app/(admin)/admin/projects/actions';
 import { useRef, useState } from 'react';
 import slugify from 'slugify';
 
@@ -11,9 +11,10 @@ interface FieldErrors {
   description?: string[];
 }
 
-// CREATE PROJECT FORM COMPONENT
+// MAIN CREATE PROJECT FORM COMPONENT
 export default function CreateProjectForm() {
-  const [isPending, setIspending] = useState(false);
+  // STATE MANAGEMENT
+  const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState<FieldErrors>({});
   const [slug, setSlug] = useState('');
@@ -22,11 +23,13 @@ export default function CreateProjectForm() {
   // HANDLE TITLE CHANGE AND AUTO-GENERATE SLUG
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
+
     const generatedSlug = slugify(title, {
       lower: true,
       strict: true,
       locale: 'ru',
     });
+
     setSlug(generatedSlug);
 
     if (errors.title) {
@@ -34,9 +37,9 @@ export default function CreateProjectForm() {
     }
   };
 
-  // HANDLE FORM SUBMIT
+  // HANDLE FORM SUBMISSION
   async function handleSubmit(formData: FormData) {
-    setIspending(true);
+    setIsPending(true);
     setMessage('');
     setErrors({});
 
@@ -55,14 +58,17 @@ export default function CreateProjectForm() {
       setErrors({});
     }
 
-    setIspending(false);
+    setIsPending(false);
   }
 
+  // RENDER FORM UI
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+      {/* FORM HEADER */}
       <h2 className="text-lg font-semibold mb-4 text-black">
         Создать новый проект (альбом)
       </h2>
+
       <form ref={formRef} action={handleSubmit} className="space-y-4">
         {/* TITLE FIELD */}
         <div>
@@ -72,6 +78,7 @@ export default function CreateProjectForm() {
           <input
             name="title"
             type="text"
+            required
             onChange={handleTitleChange}
             className={`w-full p-2 border rounded bg-gray-50 text-black outline-none focus:ring-2 ${
               errors.title
@@ -96,6 +103,7 @@ export default function CreateProjectForm() {
             value={slug}
             onChange={(e) => {
               setSlug(e.target.value);
+
               if (errors.slug) {
                 setErrors((prev) => ({ ...prev, slug: undefined }));
               }
@@ -131,6 +139,7 @@ export default function CreateProjectForm() {
           )}
         </div>
 
+        {/* SUBMIT BUTTON */}
         <button
           type="submit"
           disabled={isPending}
@@ -139,10 +148,13 @@ export default function CreateProjectForm() {
           {isPending ? 'Создание...' : 'Создать проект'}
         </button>
 
+        {/* RESULT MESSAGE */}
         {message && (
           <p
-            className={`text-sm mt-2 ${
-              message.includes('✅') ? 'text-green-600' : 'text-red-600'
+            className={`text-sm mt-2 p-2 rounded ${
+              message.includes('✅')
+                ? 'bg-green-50 text-green-600'
+                : 'bg-red-50 text-red-600'
             }`}
           >
             {message}

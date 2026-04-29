@@ -3,25 +3,26 @@
 import { SiteConfig } from '@prisma/client';
 import { useState } from 'react';
 import { updateSiteConfig } from './actions';
+import { SITE_SETTINGS_MENU } from '@/constants/site-config';
 
-// COMPONENT PROPS TYPE
 interface Props {
   initialConfig: SiteConfig;
 }
 
-// MAIN SETTINGS FORM COMPONENT
+// SETTINGS TOGGLES COMPONENT
 export default function SettingsForm({ initialConfig }: Props) {
-  // STATE MANAGEMENT
+  // STATE
   const [config, setConfig] = useState<SiteConfig>(initialConfig);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // HANDLE TOGGLE WITH OPTIMISTIC UPDATE
+  // TOGGLE HANDLER
   const handleToggle = async (field: keyof SiteConfig) => {
     if (isUpdating) return;
 
-    const oldValue = config[field] as boolean;
-    const newValue = !oldValue;
+    const currentValue = !!config[field];
+    const newValue = !currentValue;
 
+    // OPTIMISTIC UI UPDATE
     setConfig((prev) => ({ ...prev, [field]: newValue }));
     setIsUpdating(true);
 
@@ -29,35 +30,33 @@ export default function SettingsForm({ initialConfig }: Props) {
       const result = await updateSiteConfig({ [field]: newValue });
 
       if (!result.success) {
-        throw new Error('Failed to update');
+        throw new Error('Update failed');
       }
     } catch (err) {
-      alert('Ошибка сохранения');
+      alert('Ошибка при сохранении настройки');
+
+      console.error(
+        'Settings update error:',
+        err instanceof Error ? err.message : err,
+      );
+
+      // ROLLBACK
       setConfig(initialConfig);
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // MENU ITEMS CONFIGURATION
-  const menuItems = [
-    { id: 'showAbout', label: 'About', key: 'showAbout' as const },
-    { id: 'showPortfolio', label: 'Portfolio', key: 'showPortfolio' as const },
-    { id: 'showProjects', label: 'Projects', key: 'showProjects' as const },
-    { id: 'showContacts', label: 'Contacts', key: 'showContacts' as const },
-  ];
-
-  // RENDER SETTINGS LIST
+  // RENDER
   return (
     <div className="space-y-3">
-      {menuItems.map((item) => (
+      {SITE_SETTINGS_MENU.map((item) => (
         <div
           key={item.id}
-          className="flex items-center justify-between p-4 bg-zinc-50 rounded-xl"
+          className="flex items-center justify-between p-4 bg-zinc-50 rounded-xl border border-zinc-100"
         >
           <span className="font-medium text-zinc-700">{item.label}</span>
 
-          {/* TOGGLE BUTTON */}
           <button
             type="button"
             onClick={() => handleToggle(item.key)}
