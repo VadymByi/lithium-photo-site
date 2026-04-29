@@ -32,8 +32,8 @@ model Photo {
   format      String?
   title       String?
   alt         String?
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   mainSliderItems MainSliderItem[]
   portfolioItems PortfolioItem[]
