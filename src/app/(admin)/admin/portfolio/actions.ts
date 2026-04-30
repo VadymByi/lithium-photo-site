@@ -3,15 +3,15 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
-import cloudinary from '@/lib/cloudinary';
+import { uploadImage } from '@/lib/upload-image';
 
-type CloudinaryUploadResult = {
-  public_id: string;
-  secure_url: string;
-  url: string;
-  width: number;
-  height: number;
-};
+// type CloudinaryUploadResult = {
+//   public_id: string;
+//   secure_url: string;
+//   url: string;
+//   width: number;
+//   height: number;
+// };
 
 // AUTH CHECK
 async function checkAuth() {
@@ -46,25 +46,13 @@ export async function createPortfolioItem(formData: FormData) {
 
     // HANDLE FILE UPLOAD
     if (file && file.size > 0) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const uploadResult: CloudinaryUploadResult = await new Promise(
-        (resolve, reject) => {
-          cloudinary.uploader
-            .upload_stream({ folder: 'portfolio' }, (error, result) => {
-              if (error || !result) return reject(error);
-              resolve(result as CloudinaryUploadResult);
-            })
-            .end(buffer);
-        },
-      );
+      const uploadResult = await uploadImage(file, 'portfolio');
 
       const createdPhoto = await prisma.photo.create({
         data: {
-          publicId: uploadResult.public_id,
+          publicId: uploadResult.publicId,
           url: uploadResult.url,
-          secureUrl: uploadResult.secure_url,
+          secureUrl: uploadResult.secureUrl,
           width: uploadResult.width,
           height: uploadResult.height,
           projectId: null,

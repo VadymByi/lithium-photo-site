@@ -4,140 +4,92 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { mainSliderItemSchema } from '@/lib/schemas';
-import cloudinary from '@/lib/cloudinary';
-import { UploadApiResponse } from 'cloudinary';
+import { uploadImage } from '@/lib/upload-image';
 
-/**
- * Типизация ответа Cloudinary для устранения any
- */
-interface CloudinaryResponse extends UploadApiResponse {
-  url: string;
-  secure_url: string;
-  public_id: string;
-  width: number;
-  height: number;
-  format: string;
-}
-
-// FETCH ALL SLIDER ITEMS
+// FETCH SLIDER ITEMS
 export async function getSliderItems() {
-  return await prisma.mainSliderItem.findMany({
-    include: {
-      photo: true,
-    },
-    orderBy: {
-      order: 'asc',
-    },
+  return prisma.mainSliderItem.findMany({
+    include: { photo: true },
+    orderBy: { order: 'asc' },
   });
 }
 
-// CREATE NEW SLIDER ITEM (WITH PHOTO UPLOAD)
+// CREATE SLIDER ITEM
 export async function createSliderItem(formData: FormData) {
   const session = await auth();
   if (!session) return { error: 'Access denied' };
 
-  const file = formData.get('file') as File;
-
-  // Если файла нет в FormData, проверяем, пришел ли photoId (выбор из галереи)
-  const existingPhotoId = formData.get('photoId') as string;
-
   try {
-    let photoId = existingPhotoId;
+    let photoId = formData.get('photoId') as string | null;
+    const file = formData.get('file') as File;
 
-    // 1. Если загружается новый файл
+    // UPLOAD IMAGE IF FILE PROVIDED
     if (file && file.size > 0) {
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const upload = await uploadImage(file, 'lithium/main-slider');
 
-      const uploadResponse = await new Promise<CloudinaryResponse>(
-        (resolve, reject) => {
-          cloudinary.uploader
-            .upload_stream(
-              { folder: 'lithium/main-slider' },
-              (error, result) => {
-                if (error || !result) reject(error);
-                else resolve(result as CloudinaryResponse);
-              },
-            )
-            .end(buffer);
-        },
-      );
-
-      // 2. Создание записи в Photo (projectId теперь официально опционален)
       const photo = await prisma.photo.create({
         data: {
-          url: uploadResponse.url,
-          secureUrl: uploadResponse.secure_url,
-          publicId: uploadResponse.public_id,
-          width: uploadResponse.width,
-          height: uploadResponse.height,
-          format: uploadResponse.format,
+          publicId: upload.publicId,
+          url: upload.url,
+          secureUrl: upload.secureUrl,
+          width: upload.width,
+          height: upload.height,
+          format: upload.format ?? 'jpg',
         },
       });
+
       photoId = photo.id;
     }
 
     if (!photoId) {
-      return { error: 'Необходимо выбрать или загрузить изображение' };
+      return { error: 'No image provided' };
     }
 
-    // 3. Валидация данных слайдера через Zod
-    const rawData = {
+    // BUILD PAYLOAD
+    const raw = {
       title: formData.get('title'),
       description: formData.get('description'),
-      backgroundColor: formData.get('backgroundColor') || '#111111',
-      photoId: photoId,
+      backgroundColor: formData.get('backgroundColor') ?? '#111111',
+      photoId,
       order: Number(formData.get('order')) || 0,
     };
 
-    const result = mainSliderItemSchema.safeParse(rawData);
-    if (!result.success) {
+    // VALIDATE INPUT
+    const parsed = mainSliderItemSchema.safeParse(raw);
+
+    if (!parsed.success) {
       return {
-        error: 'Ошибка валидации данных',
-        details: result.error.flatten().fieldErrors,
+        error: 'Validation error',
+        details: parsed.error.flatten().fieldErrors,
       };
     }
 
-    // 4. Создание айтема слайдера
+    // CREATE DB RECORD
     await prisma.mainSliderItem.create({
-      data: result.data,
+      data: parsed.data,
     });
 
+    // REVALIDATE CACHE
     revalidatePath('/');
     revalidatePath('/admin/slider');
 
     return { success: true };
-  } catch (error) {
-    console.error('Slider creation error:', error);
-    return { error: 'Не удалось создать элемент слайдера' };
+  } catch (e) {
+    console.error(e);
+    return { error: 'Slider create failed' };
   }
 }
 
 // DELETE SLIDER ITEM
-export async function deleteSliderItem(
-  id: string,
-  photoId?: string,
-  publicId?: string,
-) {
+export async function deleteSliderItem(id: string) {
   const session = await auth();
   if (!session) return { error: 'Access denied' };
 
-  try {
-    // Если переданы данные фото, удаляем и из Cloudinary, и саму сущность Photo
-    // Это наш случай для "прямой загрузки" в слайдер
-    if (photoId && publicId) {
-      await cloudinary.uploader.destroy(publicId);
-      await prisma.photo.delete({ where: { id: photoId } });
-    } else {
-      // Иначе удаляем только привязку в слайдере (если фото общее)
-      await prisma.mainSliderItem.delete({ where: { id } });
-    }
+  await prisma.mainSliderItem.delete({ where: { id } });
 
-    revalidatePath('/');
-    revalidatePath('/admin/slider');
-    return { success: true };
-  } catch (error) {
-    console.error('Slider deletion error:', error);
-    return { error: 'Не удалось удалить элемент слайдера' };
-  }
+  // REVALIDATE CACHE
+  revalidatePath('/');
+  revalidatePath('/admin/slider');
+
+  return { success: true };
 }
