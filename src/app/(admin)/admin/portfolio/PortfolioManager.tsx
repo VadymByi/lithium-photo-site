@@ -1,49 +1,60 @@
 'use client';
 
-import { MainSliderItem, Photo } from '@prisma/client';
 import { useState, useRef, useTransition } from 'react';
-import { createSliderItem, deleteSliderItem } from './actions';
+import { Photo, PortfolioItem } from '@prisma/client';
 import ProtectedImage from '@/components/shared/ProtectedImage';
 import { Trash2, Upload, ImageIcon } from 'lucide-react';
 
+type Item = PortfolioItem & { photo: Photo };
+
 interface Props {
   allPhotos: Photo[];
-  initialItems: (MainSliderItem & { photo: Photo })[];
+  initialItems: Item[];
+  createAction: (
+    formData: FormData,
+  ) => Promise<{ success?: boolean; error?: string }>;
+  deleteAction: (id: string) => Promise<{ success?: boolean; error?: string }>;
 }
 
-export default function SliderManagerUI({ allPhotos, initialItems }: Props) {
+export default function PortfolioManager({
+  allPhotos,
+  initialItems,
+  createAction,
+  deleteAction,
+}: Props) {
   const [selectedPhotoId, setSelectedPhotoId] = useState('');
-  const [bgColor, setBgColor] = useState('#111111');
   const [uploadMode, setUploadMode] = useState<'upload' | 'select'>('upload');
   const [isPending, startTransition] = useTransition();
-  const [errorDetails, setErrorDetails] = useState<Record<string, string[]>>(
-    {},
-  );
 
   const formRef = useRef<HTMLFormElement>(null);
 
   // CREATE HANDLER
   const handleCreate = async (formData: FormData) => {
-    setErrorDetails({});
-
     startTransition(async () => {
       if (uploadMode === 'select' && !selectedPhotoId) {
-        setErrorDetails({ photoId: ['Выберите фото из списка'] });
+        alert('Выберите фото');
         return;
       }
 
-      const result = await createSliderItem(formData);
+      const result = await createAction(formData);
 
       if (result?.error) {
-        if (result.details) {
-          setErrorDetails(result.details as Record<string, string[]>);
-        } else {
-          alert(result.error);
-        }
+        alert(result.error);
       } else {
         formRef.current?.reset();
         setSelectedPhotoId('');
-        setBgColor('#111111');
+      }
+    });
+  };
+
+  // DELETE HANDLER
+  const handleDelete = (id: string) => {
+    startTransition(async () => {
+      if (!confirm('Удалить элемент из портфолио?')) return;
+
+      const res = await deleteAction(id);
+      if (res?.error) {
+        alert(res.error);
       }
     });
   };
@@ -53,7 +64,7 @@ export default function SliderManagerUI({ allPhotos, initialItems }: Props) {
       {/* FORM COLUMN */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
         <h2 className="text-lg font-semibold mb-4 text-black">
-          Добавить новый слайд
+          Добавить в портфолио
         </h2>
 
         <form ref={formRef} action={handleCreate} className="space-y-4">
@@ -84,55 +95,6 @@ export default function SliderManagerUI({ allPhotos, initialItems }: Props) {
             </button>
           </div>
 
-          {/* TITLE + BACKGROUND COLOR */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
-                Заголовок
-              </label>
-              <input
-                name="title"
-                type="text"
-                className="w-full p-2 border rounded bg-gray-50 text-black outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Заголовок слайда"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">
-                Цвет фона
-              </label>
-              <div className="flex gap-2">
-                <input
-                  name="backgroundColor"
-                  type="color"
-                  value={bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className="h-10 w-12 p-1 border rounded cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className="flex-1 p-2 border rounded text-sm uppercase text-black font-mono"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* DESCRIPTION */}
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700">
-              Описание
-            </label>
-            <textarea
-              name="description"
-              rows={2}
-              className="w-full p-2 border rounded bg-gray-50 text-black outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Краткое описание проекта"
-            />
-          </div>
-
           {/* UPLOAD MODE */}
           {uploadMode === 'upload' ? (
             <div>
@@ -149,23 +111,13 @@ export default function SliderManagerUI({ allPhotos, initialItems }: Props) {
             </div>
           ) : (
             <div>
-              <label
-                className={`block text-sm font-medium mb-2 ${
-                  errorDetails.photoId ? 'text-red-500' : 'text-gray-700'
-                }`}
-              >
+              <label className="block text-sm font-medium mb-2 text-gray-700">
                 Выберите фото из существующих
               </label>
 
               <input type="hidden" name="photoId" value={selectedPhotoId} />
 
-              <div
-                className={`grid grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 border rounded transition-colors ${
-                  errorDetails.photoId
-                    ? 'border-red-500 bg-red-50'
-                    : 'bg-gray-50'
-                }`}
-              >
+              <div className="grid grid-cols-4 gap-2 max-h-60 overflow-y-auto p-2 border rounded bg-gray-50">
                 {allPhotos.map((photo) => (
                   <div
                     key={photo.id}
@@ -188,24 +140,24 @@ export default function SliderManagerUI({ allPhotos, initialItems }: Props) {
             </div>
           )}
 
-          {/* SUBMIT */}
+          {/* SUBMIT BUTTON */}
           <button
             type="submit"
             disabled={isPending}
             className="w-full bg-black text-white py-3 rounded-lg hover:bg-zinc-800 transition-colors disabled:bg-gray-400 font-medium"
           >
-            {isPending ? 'Обработка...' : 'Добавить в слайдер'}
+            {isPending ? 'Обработка...' : 'Добавить в портфолио'}
           </button>
         </form>
       </div>
 
-      {/* SLIDER LIST */}
+      {/* LIST COLUMN */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-black">Активные слайды</h2>
+        <h2 className="text-lg font-semibold text-black">Элементы портфолио</h2>
 
         {initialItems.length === 0 && (
           <div className="p-12 border-2 border-dashed border-gray-200 rounded-xl text-center">
-            <p className="text-gray-400 italic">Слайдов пока нет</p>
+            <p className="text-gray-400 italic">Портфолио пока пустое</p>
           </div>
         )}
 
@@ -218,40 +170,22 @@ export default function SliderManagerUI({ allPhotos, initialItems }: Props) {
               <div className="relative w-20 h-20 rounded-lg overflow-hidden shrink-0 shadow-inner">
                 <ProtectedImage
                   publicId={item.photo.publicId}
-                  alt={item.title || ''}
+                  alt=""
                   fill
                   className="object-cover"
                 />
               </div>
 
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-black truncate">
-                  {item.title || 'Без названия'}
-                </h3>
-
-                <p className="text-xs text-gray-500 line-clamp-1 mb-2">
-                  {item.description}
+                <p className="text-sm text-black truncate">
+                  {item.photo.publicId.split('/').pop()}
                 </p>
-
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full border border-gray-200 shadow-sm"
-                    style={{ backgroundColor: item.backgroundColor }}
-                  />
-                  <span className="text-[10px] text-gray-400 uppercase font-mono tracking-wider">
-                    {item.backgroundColor}
-                  </span>
-                </div>
               </div>
 
               <button
-                onClick={() => {
-                  if (confirm('Удалить этот слайд?')) {
-                    deleteSliderItem(item.id);
-                  }
-                }}
+                onClick={() => handleDelete(item.id)}
                 className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                title="Удалить слайд"
+                title="Удалить элемент"
               >
                 <Trash2 size={20} />
               </button>
