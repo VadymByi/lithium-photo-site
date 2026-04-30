@@ -1,115 +1,85 @@
 'use server';
 
 import { auth } from '@/lib/auth';
-import cloudinary from '@/lib/cloudinary';
 import { prisma } from '@/lib/prisma';
-import { UploadApiResponse } from 'cloudinary';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { uploadImage } from '@/lib/upload-image';
+import cloudinary from '@/lib/cloudinary';
 
-// UPLOAD SINGLE PHOTO ACTION
+// UPLOAD PHOTO
 export async function uploadPhotoAction(formData: FormData) {
-  // AUTHORIZATION CHECK
   const session = await auth();
-  if (!session) return { error: 'Доступ запрещен' };
+  if (!session) return { error: 'Access denied' };
 
-  // EXTRACT FORM DATA
   const file = formData.get('file') as File;
   const projectId = formData.get('projectId') as string;
 
-  // BASIC VALIDATION
-  if (!file || file.size === 0) return { error: 'Файл пустой или отсутствует' };
-  if (!projectId) return { error: 'ID проекта не указан' };
+  if (!file || file.size === 0) return { error: 'Empty file' };
+  if (!projectId) return { error: 'Project required' };
+
+  // CHECK PROJECT EXISTS
+  const projectExists = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!projectExists) return { error: 'Project not found' };
 
   try {
-    // VERIFY PROJECT EXISTS
-    const projectExists = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { id: true },
-    });
-
-    if (!projectExists) return { error: 'Указанный проект не найден' };
-
-    // PREPARE FILE BUFFER
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
     // UPLOAD TO CLOUDINARY
-    const uploadResponse = await new Promise<UploadApiResponse>((res, rej) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            folder: `Lithium_gallery/${projectId}`,
-            transformation: [{ quality: 'auto', fetch_format: 'auto' }],
-          },
-          (error, result) => {
-            if (error || !result)
-              rej(error || new Error('Cloudinary upload failed'));
-            else res(result);
-          },
-        )
-        .end(buffer);
-    });
+    const upload = await uploadImage(file, `Lithium_gallery/${projectId}`);
 
-    // SAVE PHOTO RECORD TO DATABASE
+    // SAVE PHOTO TO DB
     await prisma.photo.create({
       data: {
-        url: uploadResponse.url,
-        secureUrl: uploadResponse.secure_url,
-        publicId: uploadResponse.public_id,
-        width: uploadResponse.width,
-        height: uploadResponse.height,
-        format: uploadResponse.format || 'jpg',
-        projectId: projectId,
+        url: upload.url,
+        secureUrl: upload.secureUrl,
+        publicId: upload.publicId,
+        width: upload.width,
+        height: upload.height,
+        format: upload.format ?? 'jpg',
+        projectId,
         title: file.name,
       },
     });
 
-    // REVALIDATE RELATED PATHS
+    // REVALIDATE CACHE
     revalidatePath(`/admin/projects/${projectId}`);
     revalidatePath('/admin/photos');
 
     return { success: true };
-  } catch (error) {
-    // ERROR HANDLING
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
-    console.error(`Ошибка загрузки файла ${file.name}:`, errorMessage);
-
-    return { error: `Не удалось загрузить ${file.name}` };
+  } catch (e) {
+    console.error(e);
+    return { error: 'Upload failed' };
   }
 }
 
-// DELETE PHOTO ACTION
-export async function deletePhotoAction(photoId: string, publicId: string) {
-  // AUTHORIZATION CHECK
+// DELETE PHOTO
+export async function deletePhotoAction(photoId: string) {
   const session = await auth();
-  if (!session) return { error: 'Доступ запрещен' };
+  if (!session) return { error: 'Access denied' };
 
-  // VALIDATE INPUT IDS
+  // VALIDATE ID
   const idCheck = z.string().cuid().safeParse(photoId);
-  if (!idCheck.success || !publicId) return { error: 'Некорректные ID' };
+  if (!idCheck.success) return { error: 'Invalid ID' };
 
-  try {
-    // DELETE FROM CLOUDINARY
-    await cloudinary.uploader.destroy(publicId);
+  // FIND PHOTO
+  const photo = await prisma.photo.findUnique({
+    where: { id: idCheck.data },
+  });
 
-    // DELETE FROM DATABASE
-    await prisma.photo.delete({
-      where: { id: idCheck.data },
-    });
-
-    // REVALIDATE RELATED PATHS
-    revalidatePath('/admin/photos');
-    revalidatePath('/projects');
-
-    return { success: true };
-  } catch (error) {
-    // ERROR HANDLING
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
-    console.error('Delete error:', errorMessage);
-
-    return { error: 'Не удалось удалить фотографию' };
+  // DELETE FROM CLOUDINARY
+  if (photo?.publicId) {
+    await cloudinary.uploader.destroy(photo.publicId);
   }
+
+  // DELETE FROM DB
+  await prisma.photo.delete({
+    where: { id: idCheck.data },
+  });
+
+  // REVALIDATE CACHE
+  revalidatePath('/admin/photos');
+
+  return { success: true };
 }
