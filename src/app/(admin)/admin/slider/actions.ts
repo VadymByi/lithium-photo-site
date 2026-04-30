@@ -23,7 +23,7 @@ export async function createSliderItem(formData: FormData) {
     let photoId = formData.get('photoId') as string | null;
     const file = formData.get('file') as File;
 
-    // UPLOAD IMAGE IF FILE PROVIDED
+    // 1. UPLOAD FILE → PHOTO (UNIFIED FLOW)
     if (file && file.size > 0) {
       const upload = await uploadImage(file, 'lithium/main-slider');
 
@@ -35,6 +35,7 @@ export async function createSliderItem(formData: FormData) {
           width: upload.width,
           height: upload.height,
           format: upload.format ?? 'jpg',
+          projectId: null, // 👈 важно: теперь это общий медиаресурс
         },
       });
 
@@ -45,7 +46,7 @@ export async function createSliderItem(formData: FormData) {
       return { error: 'No image provided' };
     }
 
-    // BUILD PAYLOAD
+    // 2. VALIDATE INPUT
     const raw = {
       title: formData.get('title'),
       description: formData.get('description'),
@@ -54,7 +55,6 @@ export async function createSliderItem(formData: FormData) {
       order: Number(formData.get('order')) || 0,
     };
 
-    // VALIDATE INPUT
     const parsed = mainSliderItemSchema.safeParse(raw);
 
     if (!parsed.success) {
@@ -64,18 +64,18 @@ export async function createSliderItem(formData: FormData) {
       };
     }
 
-    // CREATE DB RECORD
+    // 3. CREATE ITEM
     await prisma.mainSliderItem.create({
       data: parsed.data,
     });
 
-    // REVALIDATE CACHE
+    // 4. REVALIDATE
     revalidatePath('/');
     revalidatePath('/admin/slider');
 
     return { success: true };
   } catch (e) {
-    console.error(e);
+    console.error('Slider create error:', e);
     return { error: 'Slider create failed' };
   }
 }
@@ -85,11 +85,15 @@ export async function deleteSliderItem(id: string) {
   const session = await auth();
   if (!session) return { error: 'Access denied' };
 
-  await prisma.mainSliderItem.delete({ where: { id } });
+  try {
+    await prisma.mainSliderItem.delete({ where: { id } });
 
-  // REVALIDATE CACHE
-  revalidatePath('/');
-  revalidatePath('/admin/slider');
+    revalidatePath('/');
+    revalidatePath('/admin/slider');
 
-  return { success: true };
+    return { success: true };
+  } catch (e) {
+    console.error('Slider delete error:', e);
+    return { error: 'Delete failed' };
+  }
 }

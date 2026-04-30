@@ -4,106 +4,74 @@ import { useRef, useState, ChangeEvent } from 'react';
 import { uploadPhotoAction } from '@/app/(admin)/admin/photos/actions';
 import { Upload, ImageIcon, Loader2, X } from 'lucide-react';
 
-// TYPES
-interface Project {
-  id: string;
-  title: string;
-}
-
-interface PhotoUploadFormProps {
-  projects?: Project[];
-  projectId?: string;
-}
-
-// MAIN PHOTO UPLOAD FORM COMPONENT
-export default function PhotoUploadForm({
-  projects = [],
-  projectId,
-}: PhotoUploadFormProps) {
-  // STATE MANAGEMENT
+// MAIN COMPONENT
+export default function PhotoUploadForm({ projectId }: { projectId?: string }) {
+  // STATE & REFS
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState('');
   const [previews, setPreviews] = useState<string[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // HANDLE FILE SELECTION AND PREVIEW GENERATION
+  // PREVIEW GENERATION LOGIC
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
+    if (!e.target.files) return;
 
-      previews.forEach((url) => URL.revokeObjectURL(url));
+    const filesArray = Array.from(e.target.files);
+    const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
 
-      setPreviews(newPreviews);
-      setMessage('');
-    }
+    previews.forEach((url) => URL.revokeObjectURL(url));
+
+    setPreviews(newPreviews);
+    setMessage('');
   };
 
-  // CLEAR SELECTED FILES
+  // CLEANUP LOGIC
   const clearSelection = () => {
     previews.forEach((url) => URL.revokeObjectURL(url));
     setPreviews([]);
-
-    if (formRef.current) formRef.current.reset();
+    formRef.current?.reset();
   };
 
-  // HANDLE FORM SUBMISSION AND SEQUENTIAL UPLOAD
-  async function handleSubmit(formData: FormData) {
+  // UPLOAD HANDLER
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (isPending) return;
+
+    const formData = new FormData(formRef.current!);
+
+    if (projectId) {
+      formData.append('projectId', projectId);
+    }
+
     setIsPending(true);
     setMessage('');
 
-    const files = formData.getAll('file') as File[];
-    const currentProjectId = projectId || (formData.get('projectId') as string);
+    const files = Array.from(formData.getAll('file') as File[]).filter(
+      (f) => f.size > 0,
+    );
 
-    if (!currentProjectId) {
-      setMessage('❌ Сначала выберите проект');
-      setIsPending(false);
-      return;
-    }
+    let success = 0;
+    let fail = 0;
 
-    let successCount = 0;
-    let failCount = 0;
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-
-      setMessage(`⏳ Загрузка фото ${i + 1} из ${files.length}...`);
-
-      const singleFormData = new FormData();
-      singleFormData.append('file', file);
-      singleFormData.append('projectId', currentProjectId);
-
+    for (const file of files) {
       try {
-        const result = await uploadPhotoAction(singleFormData);
-
-        if (result.success) {
-          successCount++;
-        } else {
-          failCount++;
-        }
-      } catch {
-        failCount++;
+        const res = await uploadPhotoAction(formData);
+        if (res?.success) success++;
+        else fail++;
+      } catch (e) {
+        fail++;
       }
     }
 
-    // FINAL RESULT HANDLING
-    if (failCount === 0) {
-      setMessage(`✅ Все фото (${successCount}) успешно загружены!`);
-      formRef.current?.reset();
-      setPreviews([]);
-    } else {
-      setMessage(
-        `⚠️ Загрузка завершена. Успешно: ${successCount}, Ошибок: ${failCount}`,
-      );
-    }
-
+    setMessage(`Загружено: ${success}, Ошибок: ${fail}`);
     setIsPending(false);
   }
 
-  // RENDER FORM UI
+  // RENDER UI
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-      {/* HEADER */}
+      {/* HEADER SECTION */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
           <Upload size={20} className="text-blue-500" />
@@ -120,28 +88,7 @@ export default function PhotoUploadForm({
         )}
       </div>
 
-      <form ref={formRef} action={handleSubmit} className="space-y-6">
-        {/* PROJECT SELECT */}
-        {!projectId && (
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-zinc-700">
-              Выберите альбом
-            </label>
-            <select
-              name="projectId"
-              disabled={isPending}
-              className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
-            >
-              <option value="">-- Выберите проект --</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
         {/* PREVIEW GRID */}
         {previews.length > 0 && (
           <div className="grid grid-cols-4 md:grid-cols-6 gap-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200">
@@ -161,7 +108,7 @@ export default function PhotoUploadForm({
           </div>
         )}
 
-        {/* UPLOAD DROPZONE */}
+        {/* FILE INPUT DROPZONE */}
         <div className="relative group">
           <input
             type="file"
@@ -173,12 +120,10 @@ export default function PhotoUploadForm({
             required
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed"
           />
-
           <div className="border-2 border-dashed border-zinc-200 rounded-2xl p-10 flex flex-col items-center justify-center gap-3 group-hover:border-blue-400 group-hover:bg-blue-50/50 transition-all">
             <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
               <ImageIcon size={24} />
             </div>
-
             <div className="text-center">
               <p className="text-sm font-bold text-zinc-800">
                 {previews.length > 0
@@ -208,11 +153,11 @@ export default function PhotoUploadForm({
           )}
         </button>
 
-        {/* RESULT MESSAGE */}
+        {/* STATUS MESSAGES */}
         {message && !isPending && (
           <div
             className={`p-4 rounded-xl text-sm font-medium ${
-              message.includes('✅')
+              message.includes('Ошибок: 0')
                 ? 'bg-green-50 text-green-700'
                 : 'bg-red-50 text-red-700'
             }`}

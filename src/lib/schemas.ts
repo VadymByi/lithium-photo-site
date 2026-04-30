@@ -1,14 +1,14 @@
 import { z } from 'zod';
 
-// PHOTO SCHEMA
+// PHOTO VALIDATION SCHEMA
 export const photoSchema = z.object({
-  title: z.string().max(100, 'Название слишком длинное').optional().nullable(),
-  publicId: z.string().min(1, 'Public ID обязателен'),
-  url: z.string().url('Некорректный URL'),
-  projectId: z.string().min(1, 'Project ID is required'),
+  title: z.string().max(100).optional().nullable(),
+  publicId: z.string().min(1),
+  url: z.string().url(),
+  projectId: z.string().optional().nullable(),
 });
 
-// PROJECT SCHEMA
+// PROJECT VALIDATION SCHEMA
 export const projectSchema = z.object({
   title: z.string().min(3, 'Заголовок должен быть минимум 3 символа').max(100),
   slug: z
@@ -25,13 +25,13 @@ export const projectSchema = z.object({
     .nullable(),
 });
 
-// PORTFOLIO ITEM SCHEMA
+// PORTFOLIO ITEM VALIDATION SCHEMA
 export const portfolioItemSchema = z.object({
   photoId: z.string().cuid('Некорректный формат ID фотографии'),
   order: z.number().int().default(0),
 });
 
-// SITE CONFIG SCHEMA
+// SITE CONFIGURATION VALIDATION SCHEMA
 export const siteConfigSchema = z.object({
   showAbout: z.boolean(),
   showPortfolio: z.boolean(),
@@ -47,7 +47,7 @@ export const siteConfigSchema = z.object({
     .or(z.literal('')),
 });
 
-// MAIN SLIDER ITEM SCHEMA
+// MAIN SLIDER VALIDATION SCHEMA
 export const mainSliderItemSchema = z.object({
   title: z.string().max(100, 'Заголовок слишком длинный').optional(),
   description: z
@@ -63,6 +63,6 @@ export const mainSliderItemSchema = z.object({
   order: z.coerce.number().int().default(0),
 });
 
-// EXPORTED TYPES FROM SCHEMAS
+// TYPES INFERENCE
 export type ProjectInput = z.infer<typeof projectSchema>;
 export type PhotoInput = z.infer<typeof photoSchema>;

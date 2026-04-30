@@ -5,28 +5,19 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { uploadImage } from '@/lib/upload-image';
 
-// type CloudinaryUploadResult = {
-//   public_id: string;
-//   secure_url: string;
-//   url: string;
-//   width: number;
-//   height: number;
-// };
-
-// AUTH CHECK
+// AUTHENTICATION HELPER
 async function checkAuth() {
   const session = await auth();
   if (!session) throw new Error('Unauthorized');
 }
 
-// FETCH ALL PHOTOS
+// DATA FETCHING ACTIONS
 export async function getAllPhotos() {
   return prisma.photo.findMany({
     orderBy: { createdAt: 'desc' },
   });
 }
 
-// FETCH PORTFOLIO ITEMS
 export async function getPortfolioItems() {
   return prisma.portfolioItem.findMany({
     orderBy: { order: 'asc' },
@@ -34,7 +25,7 @@ export async function getPortfolioItems() {
   });
 }
 
-// CREATE PORTFOLIO ITEM
+// PORTFOLIO ITEM CREATION
 export async function createPortfolioItem(formData: FormData) {
   try {
     await checkAuth();
@@ -44,47 +35,42 @@ export async function createPortfolioItem(formData: FormData) {
 
     let finalPhotoId: string;
 
-    // HANDLE FILE UPLOAD
+    // PHOTO PROCESSING LOGIC
     if (file && file.size > 0) {
-      const uploadResult = await uploadImage(file, 'portfolio');
+      const upload = await uploadImage(file, 'portfolio');
 
-      const createdPhoto = await prisma.photo.create({
+      const photo = await prisma.photo.create({
         data: {
-          publicId: uploadResult.publicId,
-          url: uploadResult.url,
-          secureUrl: uploadResult.secureUrl,
-          width: uploadResult.width,
-          height: uploadResult.height,
+          publicId: upload.publicId,
+          url: upload.url,
+          secureUrl: upload.secureUrl,
+          width: upload.width,
+          height: upload.height,
+          format: upload.format ?? 'jpg',
           projectId: null,
         },
       });
 
-      finalPhotoId = createdPhoto.id;
-    }
-
-    // USE EXISTING PHOTO
-    else if (photoId) {
+      finalPhotoId = photo.id;
+    } else if (photoId) {
       finalPhotoId = photoId;
     } else {
-      return { error: 'Нет фото' };
+      return { error: 'No photo provided' };
     }
 
-    // CALCULATE ORDER
+    // ORDERING AND DATABASE RECORD
     const last = await prisma.portfolioItem.findFirst({
       orderBy: { order: 'desc' },
     });
 
-    const nextOrder = last ? last.order + 1 : 0;
-
-    // CREATE RECORD
     await prisma.portfolioItem.create({
       data: {
         photoId: finalPhotoId,
-        order: nextOrder,
+        order: last ? last.order + 1 : 0,
       },
     });
 
-    // REVALIDATE CACHE
+    // CACHE REVALIDATION
     revalidatePath('/');
     revalidatePath('/portfolio');
     revalidatePath('/admin/portfolio');
@@ -92,11 +78,11 @@ export async function createPortfolioItem(formData: FormData) {
     return { success: true };
   } catch (e) {
     console.error(e);
-    return { error: 'Ошибка при создании элемента' };
+    return { error: 'Create failed' };
   }
 }
 
-// DELETE PORTFOLIO ITEM
+// PORTFOLIO ITEM DELETION
 export async function deletePortfolioItem(id: string) {
   try {
     await checkAuth();
@@ -105,14 +91,13 @@ export async function deletePortfolioItem(id: string) {
       where: { id },
     });
 
-    // REVALIDATE CACHE
+    // CACHE REVALIDATION
     revalidatePath('/');
     revalidatePath('/portfolio');
     revalidatePath('/admin/portfolio');
 
     return { success: true };
   } catch (e) {
-    console.error(e);
-    return { error: 'Ошибка удаления' };
+    return { error: 'Delete failed' };
   }
 }

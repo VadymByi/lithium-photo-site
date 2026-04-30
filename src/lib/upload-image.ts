@@ -1,6 +1,6 @@
 import cloudinary from '@/lib/cloudinary';
 
-// CORE TYPE
+// TYPES
 export type UploadImageResult = {
   publicId: string;
   url: string;
@@ -10,38 +10,36 @@ export type UploadImageResult = {
   format?: string;
 };
 
-// UNIVERSAL UPLOADER
+// UPLOAD SERVICE
 export async function uploadImage(
   file: File,
   folder: string,
 ): Promise<UploadImageResult> {
-  const buffer = Buffer.from(await file.arrayBuffer());
+  // BUFFER CONVERSION
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
 
-  const result = await new Promise<UploadImageResult>((resolve, reject) => {
+  // CLOUDINARY UPLOAD STREAM
+  return await new Promise((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(
         {
           folder,
-          transformation: {
-            quality: 'auto',
-            fetch_format: 'auto',
-          },
+          transformation: [{ quality: 'auto', fetch_format: 'auto' }],
         },
-        (error, res) => {
-          if (error || !res) return reject(error);
+        (error, result) => {
+          if (error || !result) return reject(error);
 
           resolve({
-            publicId: res.public_id,
-            url: res.url,
-            secureUrl: res.secure_url,
-            width: res.width,
-            height: res.height,
-            format: res.format,
+            publicId: result.public_id,
+            url: result.url,
+            secureUrl: result.secure_url,
+            width: result.width,
+            height: result.height,
+            format: result.format,
           });
         },
       )
       .end(buffer);
   });
-
-  return result;
 }
