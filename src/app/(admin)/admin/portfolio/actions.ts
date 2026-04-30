@@ -1,98 +1,130 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { portfolioItemSchema } from '@/lib/schemas';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
-import { z } from 'zod';
+import cloudinary from '@/lib/cloudinary';
 
-// AUTH CHECK HELPER
+type CloudinaryUploadResult = {
+  public_id: string;
+  secure_url: string;
+  url: string;
+  width: number;
+  height: number;
+};
+
+// AUTH CHECK
 async function checkAuth() {
   const session = await auth();
   if (!session) throw new Error('Unauthorized');
 }
 
-// FETCH PHOTOS NOT IN PORTFOLIO
-export async function getAvailablePhotos() {
-  try {
-    const portfolioItems = await prisma.portfolioItem.findMany({
-      select: { photoId: true },
-    });
-
-    const portfolioItemIds = portfolioItems.map((item) => item.photoId);
-
-    return await prisma.photo.findMany({
-      where: {
-        id: { notIn: portfolioItemIds },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  } catch (error) {
-    console.error('Error fetching available photos:', error);
-    return [];
-  }
+// FETCH ALL PHOTOS
+export async function getAllPhotos() {
+  return prisma.photo.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
 }
 
-// FETCH PORTFOLIO ITEMS WITH PHOTOS
-export async function getPortfolioManagementItems() {
-  return await prisma.portfolioItem.findMany({
+// FETCH PORTFOLIO ITEMS
+export async function getPortfolioItems() {
+  return prisma.portfolioItem.findMany({
     orderBy: { order: 'asc' },
     include: { photo: true },
   });
 }
 
-// ADD PHOTO TO PORTFOLIO
-export async function addToPortfolio(photoId: string) {
+// CREATE PORTFOLIO ITEM
+export async function createPortfolioItem(formData: FormData) {
   try {
     await checkAuth();
 
-    // VALIDATE INPUT
-    const result = portfolioItemSchema.safeParse({ photoId, order: 0 });
+    const file = formData.get('file') as File | null;
+    const photoId = formData.get('photoId') as string | null;
 
-    if (!result.success) {
-      return { success: false, error: 'Invalid photo format' };
+    let finalPhotoId: string;
+
+    // HANDLE FILE UPLOAD
+    if (file && file.size > 0) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const uploadResult: CloudinaryUploadResult = await new Promise(
+        (resolve, reject) => {
+          cloudinary.uploader
+            .upload_stream({ folder: 'portfolio' }, (error, result) => {
+              if (error || !result) return reject(error);
+              resolve(result as CloudinaryUploadResult);
+            })
+            .end(buffer);
+        },
+      );
+
+      const createdPhoto = await prisma.photo.create({
+        data: {
+          publicId: uploadResult.public_id,
+          url: uploadResult.url,
+          secureUrl: uploadResult.secure_url,
+          width: uploadResult.width,
+          height: uploadResult.height,
+          projectId: null,
+        },
+      });
+
+      finalPhotoId = createdPhoto.id;
     }
 
-    const count = await prisma.portfolioItem.count();
+    // USE EXISTING PHOTO
+    else if (photoId) {
+      finalPhotoId = photoId;
+    } else {
+      return { error: 'Нет фото' };
+    }
 
+    // CALCULATE ORDER
+    const last = await prisma.portfolioItem.findFirst({
+      orderBy: { order: 'desc' },
+    });
+
+    const nextOrder = last ? last.order + 1 : 0;
+
+    // CREATE RECORD
     await prisma.portfolioItem.create({
       data: {
-        photoId: result.data.photoId,
-        order: count,
+        photoId: finalPhotoId,
+        order: nextOrder,
       },
     });
 
+    // REVALIDATE CACHE
+    revalidatePath('/');
     revalidatePath('/portfolio');
     revalidatePath('/admin/portfolio');
-    revalidatePath('/');
 
     return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Failed to add to portfolio' };
+  } catch (e) {
+    console.error(e);
+    return { error: 'Ошибка при создании элемента' };
   }
 }
 
-// REMOVE PHOTO FROM PORTFOLIO
-export async function removeFromPortfolio(itemId: string) {
+// DELETE PORTFOLIO ITEM
+export async function deletePortfolioItem(id: string) {
   try {
     await checkAuth();
 
-    // VALIDATE CUID
-    const idCheck = z.string().cuid().safeParse(itemId);
-    if (!idCheck.success) {
-      return { success: false, error: 'Invalid item ID' };
-    }
-
     await prisma.portfolioItem.delete({
-      where: { id: idCheck.data },
+      where: { id },
     });
 
+    // REVALIDATE CACHE
+    revalidatePath('/');
     revalidatePath('/portfolio');
     revalidatePath('/admin/portfolio');
-    revalidatePath('/');
 
     return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Failed to remove from portfolio' };
+  } catch (e) {
+    console.error(e);
+    return { error: 'Ошибка удаления' };
   }
 }

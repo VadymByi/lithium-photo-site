@@ -3,11 +3,13 @@
 import { useState, useRef } from 'react';
 import { createSliderItem } from './actions';
 
+// SLIDER UPLOAD FORM
 export default function SliderUploadForm() {
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState('');
   const formRef = useRef<HTMLFormElement>(null);
 
+  // SUBMIT HANDLER
   async function handleSubmit(formData: FormData) {
     setIsPending(true);
     setMessage('');
@@ -20,16 +22,19 @@ export default function SliderUploadForm() {
       setMessage('✅ Слайд добавлен!');
       formRef.current?.reset();
     }
+
     setIsPending(false);
   }
 
   return (
     <div className="bg-white p-6 rounded-xl border border-zinc-100 shadow-sm mb-10">
+      {/* HEADER */}
       <h2 className="text-lg font-bold mb-4 text-zinc-800">
         Добавить новый слайд
       </h2>
 
       <form ref={formRef} action={handleSubmit} className="space-y-4">
+        {/* TITLE + BACKGROUND COLOR */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1 text-zinc-600">
@@ -41,6 +46,7 @@ export default function SliderUploadForm() {
               className="w-full p-2 border rounded bg-zinc-50 outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium mb-1 text-zinc-600">
               Цвет фона (HEX)
@@ -54,6 +60,7 @@ export default function SliderUploadForm() {
           </div>
         </div>
 
+        {/* DESCRIPTION */}
         <div>
           <label className="block text-sm font-medium mb-1 text-zinc-600">
             Описание
@@ -65,6 +72,7 @@ export default function SliderUploadForm() {
           />
         </div>
 
+        {/* FILE UPLOAD */}
         <div>
           <label className="block text-sm font-medium mb-1 text-zinc-600">
             Изображение
@@ -78,6 +86,7 @@ export default function SliderUploadForm() {
           />
         </div>
 
+        {/* SUBMIT BUTTON */}
         <button
           type="submit"
           disabled={isPending}
@@ -86,9 +95,14 @@ export default function SliderUploadForm() {
           {isPending ? 'Загрузка...' : 'Загрузить и добавить'}
         </button>
 
+        {/* STATUS MESSAGE */}
         {message && (
           <p
-            className={`text-sm mt-2 p-2 rounded ${message.includes('✅') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}
+            className={`text-sm mt-2 p-2 rounded ${
+              message.includes('✅')
+                ? 'bg-green-50 text-green-600'
+                : 'bg-red-50 text-red-600'
+            }`}
           >
             {message}
           </p>
