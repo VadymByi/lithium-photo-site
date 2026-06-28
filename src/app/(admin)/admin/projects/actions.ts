@@ -33,8 +33,10 @@ export async function createProjectAction(formData: FormData) {
     // CREATE PROJECT IN DATABASE
     await prisma.project.create({ data: result.data });
 
-    // REVALIDATE CACHE
+    // REVALIDATE CACHE (ADMIN & PUBLIC)
     revalidatePath('/admin/projects');
+    revalidatePath('/projects');
+    revalidatePath('/');
 
     return { success: true };
   } catch (err) {
@@ -78,9 +80,12 @@ export async function updateProjectAction(id: string, formData: FormData) {
       data: result.data,
     });
 
-    // REVALIDATE CACHE
+    // REVALIDATE CACHE (ADMIN & PUBLIC)
     revalidatePath('/admin/projects');
     revalidatePath(`/admin/projects/${id}`);
+    revalidatePath('/projects');
+    revalidatePath(`/projects/${result.data.slug}`);
+    revalidatePath('/');
 
     return { success: true };
   } catch (err) {
@@ -97,7 +102,12 @@ export async function deleteProjectAction(id: string) {
   if (!session) return { success: false, error: 'Unauthorized' };
 
   try {
-    // FETCH PROJECT PHOTOS
+    // FETCH PROJECT PHOTOS & SLUG BEFORE DELETION (TO REVALIDATE PUBLIC PAGE)
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: { slug: true },
+    });
+
     const projectPhotos = await prisma.photo.findMany({
       where: { projectId: id },
       select: { publicId: true },
@@ -118,8 +128,12 @@ export async function deleteProjectAction(id: string) {
       where: { id },
     });
 
-    // REVALIDATE CACHE
+    // REVALIDATE CACHE (ADMIN & PUBLIC)
     revalidatePath('/admin/projects');
+    revalidatePath('/projects');
+    if (project?.slug) {
+      revalidatePath(`/projects/${project.slug}`);
+    }
     revalidatePath('/');
 
     return { success: true };
@@ -128,7 +142,7 @@ export async function deleteProjectAction(id: string) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown deletion error';
 
-    console.error('Error during project deletion:', errorMessage);
+    console.log('Error during project deletion:', errorMessage);
 
     return {
       success: false,
