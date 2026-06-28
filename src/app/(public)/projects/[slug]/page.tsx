@@ -41,7 +41,7 @@ export default function ProjectDetail({
   // VIEWER NAVIGATION: NEXT IMAGE
   const showNext = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (viewerIndex === null) return;
+    if (viewerIndex === null || project.photos.length === 0) return;
 
     setViewerIndex((prev) =>
       prev !== null ? (prev + 1) % project.photos.length : null,
@@ -51,7 +51,7 @@ export default function ProjectDetail({
   // VIEWER NAVIGATION: PREVIOUS IMAGE
   const showPrev = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (viewerIndex === null) return;
+    if (viewerIndex === null || project.photos.length === 0) return;
 
     setViewerIndex((prev) =>
       prev !== null
@@ -78,27 +78,33 @@ export default function ProjectDetail({
         </div>
 
         {/* MASONRY GALLERY */}
-        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
-          {project.photos.map((photo, index: number) => (
-            <div
-              key={photo.id}
-              className="mb-4 break-inside-avoid cursor-pointer group relative bg-zinc-50 rounded-sm overflow-hidden"
-              onClick={() => setViewerIndex(index)}
-            >
-              <ProtectedImage
-                publicId={photo.publicId}
-                alt={photo.title || 'Gallery image'}
-                width={800}
-                height={1200}
-                className="w-full h-auto transition-all duration-500 group-hover:scale-[1.02] group-hover:opacity-90"
-              />
-            </div>
-          ))}
-        </div>
+        {project.photos.length === 0 ? (
+          <div className="text-zinc-400 font-light text-sm tracking-wider py-10">
+            В этом проекте пока нет фотографий.
+          </div>
+        ) : (
+          <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
+            {project.photos.map((photo, index: number) => (
+              <div
+                key={photo.id}
+                className="mb-4 break-inside-avoid cursor-pointer group relative bg-zinc-50 rounded-sm overflow-hidden"
+                onClick={() => setViewerIndex(index)}
+              >
+                <ProtectedImage
+                  publicId={photo.publicId}
+                  alt={photo.title || 'Gallery image'}
+                  width={800}
+                  height={1200}
+                  className="w-full h-auto transition-all duration-500 group-hover:scale-[1.02] group-hover:opacity-90"
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* FULLSCREEN IMAGE VIEWER */}
-      {viewerIndex !== null && (
+      {viewerIndex !== null && project.photos.length > 0 && (
         <div
           className="fixed inset-0 z-100 bg-white/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
           onClick={() => setViewerIndex(null)}
