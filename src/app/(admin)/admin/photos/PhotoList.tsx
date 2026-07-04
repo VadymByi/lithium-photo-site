@@ -12,7 +12,7 @@ export default function PhotoList({ photos }: PhotoListProps) {
 
     if (!confirmed) return;
 
-    await deletePhotoAction(id, publicId);
+    await deletePhotoAction(id);
   };
 
   // RENDER GRID
