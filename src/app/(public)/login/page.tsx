@@ -1,18 +1,18 @@
 'use client';
 
 import { useActionState } from 'react';
-import { loginAction } from './actions';
+import { loginAction, ActionState } from './actions'; // Импортируем ActionState
 
 export default function LoginPage() {
-  // Передаем пустой объект как начальное состояние, чтобы удовлетворить типы
-  const [state, formAction, isPending] = useActionState(loginAction, {
-    error: undefined,
-  });
+  // Явно указываем тип генерика <ActionState, FormData>
+  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
+    loginAction,
+    { error: undefined, errors: {} },
+  );
 
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto w-full max-w-md">
-        {/* ЗАГОЛОВОК */}
         <h2 className="mt-6 text-center text-3xl font-light tracking-tight text-zinc-900 uppercase">
           Вход в панель
         </h2>

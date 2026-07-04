@@ -17,7 +17,7 @@ export interface ActionState {
     password?: string[];
     _form?: string[];
   };
-  message?: string | null;
+  error?: string; // Поменяли message на error для совместимости с интерфейсом страницы
 }
 
 // LOGIN ACTION HANDLER
@@ -30,9 +30,15 @@ export async function loginAction(
   const validatedFields = LoginSchema.safeParse(rawFormData);
 
   if (!validatedFields.success) {
+    // Берем первую ошибку валидации из Zod для вывода в общую плашку
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
+    const firstError =
+      Object.values(fieldErrors)[0]?.[0] ||
+      'Пожалуйста, проверьте введенные данные.';
+
     return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Пожалуйста, проверьте введенные данные.',
+      errors: fieldErrors,
+      error: firstError,
     };
   }
 
@@ -46,22 +52,22 @@ export async function loginAction(
       redirectTo: '/admin',
     });
 
-    return { message: 'Успешный вход', errors: {} };
+    return { error: undefined, errors: {} };
   } catch (error) {
     // HANDLE AUTH ERRORS
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
-          return { message: 'Неверный email или пароль.', errors: {} };
+          return { error: 'Неверный email или пароль.', errors: {} };
         default:
           return {
-            message: 'Ошибка аутентификации. Попробуйте позже.',
+            error: 'Ошибка аутентификации. Попробуйте позже.',
             errors: {},
           };
       }
     }
 
-    // RE-THROW REDIRECT ERRORS
+    // RE-THROW REDIRECT ERRORS (Next.js обрабатывает редиректы через бросание ошибок, это важно не гасить)
     throw error;
   }
 }
