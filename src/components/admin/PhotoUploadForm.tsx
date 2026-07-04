@@ -2,14 +2,33 @@
 
 import { useRef, useState, ChangeEvent } from 'react';
 import { uploadPhotoAction } from '@/app/(admin)/admin/photos/actions';
-import { Upload, ImageIcon, Loader2, X } from 'lucide-react';
+import { Upload, ImageIcon, Loader2, X, FolderKanban } from 'lucide-react';
+
+// Описываем тип проекта на основе ошибки компилятора
+interface SimpleProject {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  mainImage: string | null;
+  createdAt: Date;
+}
+
+interface PhotoUploadFormProps {
+  projectId?: string;
+  projects?: SimpleProject[]; // Делаем необязательным, если форма используется внутри конкретного проекта
+}
 
 // MAIN COMPONENT
-export default function PhotoUploadForm({ projectId }: { projectId?: string }) {
+export default function PhotoUploadForm({
+  projectId,
+  projects = [],
+}: PhotoUploadFormProps) {
   // STATE & REFS
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState('');
   const [previews, setPreviews] = useState<string[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId || '');
   const formRef = useRef<HTMLFormElement>(null);
 
   // PREVIEW GENERATION LOGIC
@@ -40,8 +59,10 @@ export default function PhotoUploadForm({ projectId }: { projectId?: string }) {
 
     const formData = new FormData(formRef.current!);
 
-    if (projectId) {
-      formData.append('projectId', projectId);
+    // Берём либо пропс из родителя, либо то, что выбрали в селекте
+    const finalProjectId = projectId || selectedProjectId;
+    if (finalProjectId) {
+      formData.set('projectId', finalProjectId);
     }
 
     setIsPending(true);
@@ -56,7 +77,14 @@ export default function PhotoUploadForm({ projectId }: { projectId?: string }) {
 
     for (const file of files) {
       try {
-        const res = await uploadPhotoAction(formData);
+        // Создаем отдельный FormData для каждого файла, чтобы работал цикл на бэкенде
+        const singleFileFormData = new FormData();
+        singleFileFormData.append('file', file);
+        if (finalProjectId) {
+          singleFileFormData.append('projectId', finalProjectId);
+        }
+
+        const res = await uploadPhotoAction(singleFileFormData);
         if (res?.success) success++;
         else fail++;
       } catch (e) {
@@ -80,6 +108,7 @@ export default function PhotoUploadForm({ projectId }: { projectId?: string }) {
 
         {previews.length > 0 && !isPending && (
           <button
+            type="button"
             onClick={clearSelection}
             className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 transition-colors"
           >
@@ -89,6 +118,28 @@ export default function PhotoUploadForm({ projectId }: { projectId?: string }) {
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+        {/* SELECT PROJECT (Показываем, только если мы на общей странице и есть проекты) */}
+        {!projectId && projects.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+              <FolderKanban size={14} /> Выберите проект (альбом)
+            </label>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              disabled={isPending}
+              className="w-full bg-zinc-50 border border-zinc-200 text-zinc-800 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:border-blue-500 focus:bg-white transition-all appearance-none cursor-pointer"
+            >
+              <option value="">Общая галерея (без привязки к проекту)</option>
+              {projects.map((proj) => (
+                <option key={proj.id} value={proj.id}>
+                  {proj.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* PREVIEW GRID */}
         {previews.length > 0 && (
           <div className="grid grid-cols-4 md:grid-cols-6 gap-3 p-4 bg-zinc-50 rounded-2xl border border-zinc-200">
@@ -102,6 +153,10 @@ export default function PhotoUploadForm({ projectId }: { projectId?: string }) {
                   alt="Preview"
                   className="object-cover w-full h-full"
                   loading="lazy"
+                  onError={(e) => {
+                    // fallback на случай битого blob
+                    (e.target as HTMLImageElement).src = '';
+                  }}
                 />
               </div>
             ))}
@@ -146,7 +201,7 @@ export default function PhotoUploadForm({ projectId }: { projectId?: string }) {
           {isPending ? (
             <>
               <Loader2 className="animate-spin" size={20} />
-              {message}
+              Загрузка... {message}
             </>
           ) : (
             'Начать загрузку файлов'
