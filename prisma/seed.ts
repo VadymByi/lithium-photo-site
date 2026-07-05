@@ -4,8 +4,14 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL || 'admin@example.com';
-  const rawPassword = process.env.ADMIN_PASSWORD || 'password123';
+  const email = process.env.ADMIN_EMAIL;
+  const rawPassword = process.env.ADMIN_PASSWORD;
+
+  if (!email || !rawPassword) {
+    throw new Error(
+      '❌ Ошибка: Переменные ADMIN_EMAIL и ADMIN_PASSWORD не заданы в .env!',
+    );
+  }
 
   const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
