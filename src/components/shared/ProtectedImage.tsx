@@ -18,16 +18,18 @@ export default function ProtectedImage({
 
   return (
     <div
-      className={`relative select-none overflow-hidden ${props.fill ? 'w-full h-full' : 'inline-block'} ${className || ''}`}
+      className={`relative select-none overflow-hidden ${props.fill ? 'w-full h-full' : 'inline-block'}`}
       onContextMenu={preventDefault}
     >
       <Image
-        className="pointer-events-none block"
+        // Теперь object-cover (из className) применяется именно к картинке!
+        className={`pointer-events-none block ${className || ''}`}
         src={protectedUrl}
         {...props}
         alt={alt}
         draggable={false}
       />
+      {/* Прозрачный слой поверх картинки для защиты от перетаскивания и сохранения по правому клику */}
       <div
         className="absolute inset-0 z-10 bg-transparent cursor-default"
         aria-hidden="true"
