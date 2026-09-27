@@ -7,14 +7,11 @@ import ProtectedImage from '@/components/shared/ProtectedImage';
 import { getPortfolioPhotos } from './actions';
 import { Photo } from '@prisma/client';
 
-// MAIN PORTFOLIO PAGE COMPONENT
 const PortfolioPage = () => {
-  // STATE MANAGEMENT
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // FETCH PORTFOLIO PHOTOS
   useEffect(() => {
     async function load() {
       try {
@@ -29,17 +26,14 @@ const PortfolioPage = () => {
     load();
   }, []);
 
-  // SLIDER NAVIGATION: NEXT
   const nextSlide = () => {
     setActiveIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1));
   };
 
-  // SLIDER NAVIGATION: PREVIOUS
   const prevSlide = () => {
     setActiveIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1));
   };
 
-  // LOADING STATE
   if (loading) {
     return (
       <div className="h-screen bg-black flex items-center justify-center text-white/20">
@@ -48,7 +42,6 @@ const PortfolioPage = () => {
     );
   }
 
-  // EMPTY STATE
   if (photos.length === 0) {
     return (
       <div className="h-screen bg-black flex items-center justify-center text-white/20">
@@ -58,8 +51,7 @@ const PortfolioPage = () => {
   }
 
   return (
-    // MAIN SLIDER CONTAINER
-    <main className="relative h-screen w-full overflow-hidden bg-black">
+    <main className="relative h-screen w-full overflow-hidden bg-blackIn">
       {/* SLIDES WRAPPER */}
       <div
         className="flex h-full w-full transition-transform duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -67,7 +59,6 @@ const PortfolioPage = () => {
       >
         {photos.map((photo, index) => (
           <div key={photo.id} className="relative h-full w-full shrink-0">
-            {/* MAIN IMAGE */}
             <ProtectedImage
               publicId={photo.publicId}
               alt={photo.title || 'Portfolio Image'}
@@ -82,50 +73,66 @@ const PortfolioPage = () => {
       {/* NAVIGATION BUTTONS */}
       <button
         onClick={prevSlide}
-        className="absolute left-6 top-1/2 -translate-y-1/2 z-50 p-4 text-white/40 hover:text-white transition-all outline-none"
+        className="absolute left-6 top-1/2 -translate-y-1/2 z-40 p-4 text-white/40 hover:text-white transition-all outline-none"
       >
         <ChevronLeft size={60} strokeWidth={0.5} />
       </button>
 
       <button
         onClick={nextSlide}
-        className="absolute right-6 top-1/2 -translate-y-1/2 z-50 p-4 text-white/40 hover:text-white transition-all outline-none"
+        className="absolute right-6 top-1/2 -translate-y-1/2 z-40 p-4 text-white/40 hover:text-white transition-all outline-none"
       >
         <ChevronRight size={60} strokeWidth={0.5} />
       </button>
 
-      {/* THUMBNAIL STRIP */}
-      <div className="fixed bottom-0 left-0 z-50 grid grid-flow-col auto-cols-fr w-full border-t border-white/5 bg-black/20 backdrop-blur-md">
-        {photos.map((photo, index) => (
-          <button
-            key={photo.id}
-            onClick={() => setActiveIndex(index)}
-            className="relative group aspect-square overflow-hidden border-r border-white/5 last:border-r-0 outline-none"
-          >
-            {/* THUMBNAIL IMAGE */}
-            <div
-              className={`relative w-full h-full transition-all duration-700 ${
-                activeIndex === index
-                  ? 'opacity-100 scale-100'
-                  : 'opacity-30 scale-110 grayscale group-hover:opacity-60'
-              }`}
-            >
-              <ProtectedImage
-                publicId={photo.publicId}
-                alt="thumb"
-                fill
-                className="object-cover"
-              />
-            </div>
+      {/* ИНТЕРАКТИВНАЯ ЗОНА ДЛЯ МИНИАТЮР */}
+      <div className="fixed bottom-0 left-0 w-full z-50 group h-24 flex flex-col justify-end">
+        {/* Невидимый триггер над полосой */}
+        <div className="absolute top-0 left-0 w-full h-8 bg-transparent pointer-events-auto" />
 
-            {/* ACTIVE INDICATOR */}
-            <Indicator isActive={activeIndex === index} />
-          </button>
-        ))}
+        {/* Сама лента с миниатюрами */}
+        <div className="w-full border-t border-white/5 bg-black/40 backdrop-blur-md flex flex-wrap justify-center overflow-hidden translate-y-full transition-transform duration-500 ease-out group-hover:translate-y-0">
+          {/* Генерируем достаточное количество элементов для заполнения экрана.
+      Если фото мало (например, меньше 20), мы повторяем их по кругу.
+    */}
+          {Array.from({ length: Math.ceil(20 / photos.length) || 1 })
+            .flatMap(() => photos)
+            .map((photo, index) => {
+              // Вычисляем реальный индекс оригинальной фотографии
+              const originalIndex = index % photos.length;
+              const isCurrentActive = activeIndex === originalIndex;
+
+              return (
+                <button
+                  key={`thumb-${photo.id}-${index}`}
+                  onClick={() => setActiveIndex(originalIndex)}
+                  className="relative group/thumb w-16 h-16 shrink-0 border-r border-white/5 last:border-r-0 outline-none"
+                >
+                  {/* IMAGE CONTAINER */}
+                  <div
+                    className={`relative w-full h-full transition-all duration-500 ${
+                      isCurrentActive
+                        ? 'opacity-100 scale-100'
+                        : 'opacity-40 scale-105 group-hover/thumb:opacity-80'
+                    }`}
+                  >
+                    <ProtectedImage
+                      publicId={photo.publicId}
+                      alt="thumb"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  {/* ACTIVE INDICATOR */}
+                  <Indicator isActive={isCurrentActive} />
+                </button>
+              );
+            })}
+        </div>
       </div>
     </main>
   );
 };
 
-// DEFAULT EXPORT
 export default PortfolioPage;

@@ -4,7 +4,6 @@ import { useActionState } from 'react';
 import { loginAction } from './actions';
 
 export default function LoginPage() {
-  
   const [state, formAction, isPending] = useActionState(loginAction, {
     message: null,
     errors: {},
@@ -13,7 +12,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto w-full max-w-md">
-        {/* ЗАГОЛОВОК */}
         <h2 className="mt-6 text-center text-3xl font-light tracking-tight text-zinc-900 uppercase">
           Вход в панель
         </h2>
@@ -25,7 +23,6 @@ export default function LoginPage() {
       <div className="mt-8 sm:mx-auto w-full max-w-md">
         <div className="bg-white py-8 px-4 shadow-sm border border-zinc-100 sm:rounded-xl sm:px-10">
           <form action={formAction} className="space-y-6">
-            {/* EMAIL */}
             <div>
               <label
                 htmlFor="email"
@@ -45,11 +42,12 @@ export default function LoginPage() {
                 />
               </div>
               {state.errors?.email?.[0] && (
-                <p className='mt-1 text-sm text-red-600'>{state.errors.email[0]}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {state.errors.email[0]}
+                </p>
               )}
             </div>
 
-            {/* PASSWORD */}
             <div>
               <label
                 htmlFor="password"
@@ -69,18 +67,18 @@ export default function LoginPage() {
                 />
               </div>
               {state.errors?.password?.[0] && (
-                <p className='mt-1 text-sm text-red-600'> {state.errors.password[0]}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {state.errors.password[0]}
+                </p>
               )}
             </div>
 
-            {/* ВЫВОД ОШИБКИ */}
             {state.message && (
               <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-100">
                 {state.message}
               </div>
             )}
 
-            {/* КНОПКА ОТПРАВКИ */}
             <div>
               <button
                 type="submit"

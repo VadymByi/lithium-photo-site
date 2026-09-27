@@ -17,7 +17,7 @@ export interface ActionState {
     password?: string[];
     _form?: string[];
   };
-  message?: string | null;
+  message?: string | null; 
 }
 
 // LOGIN ACTION HANDLER
@@ -30,9 +30,15 @@ export async function loginAction(
   const validatedFields = LoginSchema.safeParse(rawFormData);
 
   if (!validatedFields.success) {
+    // Берем первую ошибку валидации из Zod для вывода в общую плашку
+    const fieldErrors = validatedFields.error.flatten().fieldErrors;
+    const firstError =
+      Object.values(fieldErrors)[0]?.[0] ||
+      'Пожалуйста, проверьте введенные данные.';
+
     return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Пожалуйста, проверьте введенные данные.',
+      errors: fieldErrors,
+      message: firstError,
     };
   }
 
@@ -46,7 +52,7 @@ export async function loginAction(
       redirectTo: '/admin',
     });
 
-    return { message: 'Успешный вход', errors: {} };
+    return { message: undefined, errors: {} };
   } catch (error) {
     // HANDLE AUTH ERRORS
     if (error instanceof AuthError) {
@@ -61,7 +67,7 @@ export async function loginAction(
       }
     }
 
-    // RE-THROW REDIRECT ERRORS
+    // RE-THROW REDIRECT ERRORS (Next.js обрабатывает редиректы через бросание ошибок, это важно не гасить)
     throw error;
   }
 }
