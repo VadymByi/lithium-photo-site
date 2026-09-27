@@ -17,7 +17,7 @@ export interface ActionState {
     password?: string[];
     _form?: string[];
   };
-  error?: string; // Поменяли message на error для совместимости с интерфейсом страницы
+  message?: string | null; 
 }
 
 // LOGIN ACTION HANDLER
@@ -38,7 +38,7 @@ export async function loginAction(
 
     return {
       errors: fieldErrors,
-      error: firstError,
+      message: firstError,
     };
   }
 
@@ -52,16 +52,16 @@ export async function loginAction(
       redirectTo: '/admin',
     });
 
-    return { error: undefined, errors: {} };
+    return { message: undefined, errors: {} };
   } catch (error) {
     // HANDLE AUTH ERRORS
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
-          return { error: 'Неверный email или пароль.', errors: {} };
+          return { message: 'Неверный email или пароль.', errors: {} };
         default:
           return {
-            error: 'Ошибка аутентификации. Попробуйте позже.',
+            message: 'Ошибка аутентификации. Попробуйте позже.',
             errors: {},
           };
       }

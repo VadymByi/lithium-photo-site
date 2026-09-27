@@ -1,14 +1,13 @@
 'use client';
 
 import { useActionState } from 'react';
-import { loginAction, ActionState } from './actions'; // Импортируем ActionState
+import { loginAction } from './actions';
 
 export default function LoginPage() {
-  // Явно указываем тип генерика <ActionState, FormData>
-  const [state, formAction, isPending] = useActionState<ActionState, FormData>(
-    loginAction,
-    { error: undefined, errors: {} },
-  );
+  const [state, formAction, isPending] = useActionState(loginAction, {
+    message: null,
+    errors: {},
+  });
 
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -24,7 +23,6 @@ export default function LoginPage() {
       <div className="mt-8 sm:mx-auto w-full max-w-md">
         <div className="bg-white py-8 px-4 shadow-sm border border-zinc-100 sm:rounded-xl sm:px-10">
           <form action={formAction} className="space-y-6">
-            {/* EMAIL */}
             <div>
               <label
                 htmlFor="email"
@@ -43,9 +41,13 @@ export default function LoginPage() {
                   className="block w-full px-3 py-2 border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-black focus:border-black sm:text-sm"
                 />
               </div>
+              {state.errors?.email?.[0] && (
+                <p className="mt-1 text-sm text-red-600">
+                  {state.errors.email[0]}
+                </p>
+              )}
             </div>
 
-            {/* PASSWORD */}
             <div>
               <label
                 htmlFor="password"
@@ -64,16 +66,19 @@ export default function LoginPage() {
                   className="block w-full px-3 py-2 border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-black focus:border-black sm:text-sm"
                 />
               </div>
+              {state.errors?.password?.[0] && (
+                <p className="mt-1 text-sm text-red-600">
+                  {state.errors.password[0]}
+                </p>
+              )}
             </div>
 
-            {/* ВЫВОД ОШИБКИ */}
-            {state?.error && (
+            {state.message && (
               <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-100">
-                {state.error}
+                {state.message}
               </div>
             )}
 
-            {/* КНОПКА ОТПРАВКИ */}
             <div>
               <button
                 type="submit"
