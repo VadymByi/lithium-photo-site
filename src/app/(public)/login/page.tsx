@@ -4,9 +4,10 @@ import { useActionState } from 'react';
 import { loginAction } from './actions';
 
 export default function LoginPage() {
-  // Передаем пустой объект как начальное состояние, чтобы удовлетворить типы
+  
   const [state, formAction, isPending] = useActionState(loginAction, {
-    error: undefined,
+    message: null,
+    errors: {},
   });
 
   return (
@@ -43,6 +44,9 @@ export default function LoginPage() {
                   className="block w-full px-3 py-2 border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-black focus:border-black sm:text-sm"
                 />
               </div>
+              {state.errors?.email?.[0] && (
+                <p className='mt-1 text-sm text-red-600'>{state.errors.email[0]}</p>
+              )}
             </div>
 
             {/* PASSWORD */}
@@ -64,12 +68,15 @@ export default function LoginPage() {
                   className="block w-full px-3 py-2 border border-zinc-200 rounded-lg text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-1 focus:ring-black focus:border-black sm:text-sm"
                 />
               </div>
+              {state.errors?.password?.[0] && (
+                <p className='mt-1 text-sm text-red-600'> {state.errors.password[0]}</p>
+              )}
             </div>
 
             {/* ВЫВОД ОШИБКИ */}
-            {state?.error && (
+            {state.message && (
               <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-100">
-                {state.error}
+                {state.message}
               </div>
             )}
 
