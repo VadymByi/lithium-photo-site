@@ -32,14 +32,13 @@ export default async function AdminPhotosPage() {
               Быстрая загрузка
             </h2>
 
-            {projects.length > 0 ? (
+           
               <PhotoUploadForm projects={projects} />
-            ) : (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded text-amber-700 text-sm">
-                ⚠️ Нет доступных альбомов. Сначала создайте проект в разделе
-                «Проекты».
-              </div>
+            {projects.length === 0 && (
+              <p className='mt-4 p-4 bg-amber-50 border border-amber-200 rounded text-amber-700 text-sm'>Альбомов пока нет. Загруженные фото попадут в общую библиотеку без
+    привязки к проекту.</p>
             )}
+            
           </section>
         </aside>
 
